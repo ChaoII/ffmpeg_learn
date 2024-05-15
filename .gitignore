@@ -1,7 +1,6 @@
+
 build
 .idea
-
-
 # Prerequisites
 *.d
 
@@ -34,3 +33,4 @@ build
 *.exe
 *.out
 *.app
+
