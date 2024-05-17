@@ -1,8 +1,8 @@
 #include <iostream>
-#include "src/read_file_show_in_opencv.h"
-#include "src/hw_decode_show_in_opencv.h"
 #include <iomanip>
 #include "src/HWDecodePlayer.h"
+#include "src/PushOpenCVRtsp.h"
+#include <opencv2/core/utils/logger.hpp>
 
 extern "C" {
 #include "libavcodec/avcodec.h"
@@ -15,24 +15,44 @@ extern "C" {
 #include "libpostproc/postprocess.h"
 }
 
+int test_push() {
+
+    cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_SILENT);
+    cv::VideoCapture cap(0);
+    if (!cap.isOpened()) {
+        std::cout << "无法打开摄像头！" << std::endl;
+        return -1;
+    }
+    auto pushUtils = new PushOpenCVRtsp("rtsp://172.168.1.112:8554/live/test1");
+    pushUtils->open_codec(640, 480, 25);
+    pushUtils->start();
+    namedWindow("test", cv::WINDOW_AUTOSIZE);
+    while (true) {
+        cv::Mat frame;
+        bool bSuccess = cap.read(frame);
+        flip(frame, frame, 1);
+        pushUtils->push_frame(frame);
+        if (!bSuccess) {
+            std::cout << "" << std::endl;
+            break;
+        }
+        imshow("test", frame);
+        if (cv::waitKey(1) == 'q') {
+            break;
+        }
+    }
+    cap.release();
+    cv::destroyAllWindows();
+    return 0;
+}
+
 
 int main() {
+    // 执行ffmpeg -hwaccels 查看硬解码设备
+//    HWDecodePlayer player("rtsp://172.168.1.112/live/test", "d3d12va");
+//    if (!player.init_parameters()) return -1;
+//    player.play();
 
-    HWDecodePlayer player("juren.mp4", "cuda");
-    if (!player.init_parameters()) return -1;
-    player.play();
-
-//    hw_read_file_show("juren.mp4");
-//    read_file_show("juren.mp4");
-//    read_file_show("rtsp://172.168.1.112:8554/live/test");
-//    hw_read_file_show("rtsp://172.168.1.112:8554/live/test");
-//    std::cout << av_version_info() << std::endl;
-//    auto codecVer = avcodec_version();
-//    std::cout << codecVer << std::endl;
-//
-//    auto ver_major = (codecVer >> 16) & 0xff;
-//    auto ver_minor = (codecVer >> 8) & 0xff;
-//    auto ver_micro = (codecVer) & 0xff;
-//    std::cout << ver_major << "." << ver_minor << "." << ver_micro << std::endl;
+    test_push();
     return 0;
 }

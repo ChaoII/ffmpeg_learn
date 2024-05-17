@@ -60,6 +60,7 @@ void HWDecodePlayer::init_ffmpeg_variables() {
 }
 
 bool HWDecodePlayer::init_parameters() {
+
     if (avformat_open_input(&input_format_context_, media_file_path_.c_str(), nullptr, &options_) != 0) {
         std::cout << "cant not open video file" << std::endl;
         return false;
@@ -95,6 +96,8 @@ bool HWDecodePlayer::init_parameters() {
         src_video_pix_format = AV_PIX_FMT_NV12;
         nv12_frame_ = av_frame_alloc();
     }
+
+
     if (avcodec_open2(video_codec_context_, video_codec_, &options_) < 0) {
         std::cout << "Failed to open codec for stream :" << video_stream_index_ << std::endl;;
         return false;
@@ -124,6 +127,7 @@ void HWDecodePlayer::play() {
 void HWDecodePlayer::decode_and_show() {
 
     int ret;
+
     ret = avcodec_send_packet(video_codec_context_, packet_);
     if (ret < 0) {
         std::cerr << "Error sending a packet for decoding" << std::endl;
