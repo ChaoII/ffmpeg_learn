@@ -13,11 +13,13 @@ public:
 
     int open_codec(int width, int height, int den);
 
-    void push_frame(cv::Mat &frame);
+    void push_frame(cv::Mat &&frame);
 
     void start();
 
     void stop();
+
+    int set_encoder(const AVCodec **encoder, const char *hw_encoder_name);
 
 private:
 

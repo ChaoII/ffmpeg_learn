@@ -8,8 +8,8 @@ find_package(OpenCV REQUIRED)
 
 include_directories(${CMAKE_SOURCE_DIR})
 
-set(FFMPEG_INCLUDE_DIRS "E:/develop/ffmpeg-n7.0-latest-win64-gpl-shared-7.0/include")
-set(FFMPEG_LIBRARY_DIRS "E:/develop/ffmpeg-n7.0-latest-win64-gpl-shared-7.0/lib")
+set(FFMPEG_INCLUDE_DIRS "E:/develop/ffmpeg/include")
+set(FFMPEG_LIBRARY_DIRS "E:/develop/ffmpeg/lib")
 set(FFMPEG_LIBRARIES avdevice
         avfilter
         avformat

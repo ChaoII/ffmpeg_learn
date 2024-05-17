@@ -127,7 +127,6 @@ void HWDecodePlayer::play() {
 void HWDecodePlayer::decode_and_show() {
 
     int ret;
-
     ret = avcodec_send_packet(video_codec_context_, packet_);
     if (ret < 0) {
         std::cerr << "Error sending a packet for decoding" << std::endl;
@@ -179,7 +178,6 @@ bool HWDecodePlayer::check_and_set_hw_accel() {
         std::cerr << std::endl;
         return false;
     }
-
     for (int i = 0;; i++) {
         const AVCodecHWConfig *config = avcodec_get_hw_config(video_codec_, i);
         if (!config) {

@@ -39,8 +39,14 @@ AVFrame *mat_to_av_frame(cv::Mat &image, AVPixelFormat pix_format) {
     //得到Mat信息
     int width = image.cols;
     int height = image.rows;
+
+
     //创建AVFrame填充参数 注：调用者释放该frame
     AVFrame *frame = av_frame_alloc();
+    if (!frame) {
+        std::cerr << "Failed to allocate AVFrame" << std::endl;
+        return nullptr;
+    }
     frame->width = width;
     frame->height = height;
     frame->format = pix_format;
@@ -48,11 +54,13 @@ AVFrame *mat_to_av_frame(cv::Mat &image, AVPixelFormat pix_format) {
     int ret = av_frame_get_buffer(frame, 32);
     if (ret < 0) {
         std::cout << "Could not allocate the video frame data" << std::endl;
+        av_frame_free(&frame);
         return nullptr;
     }
     ret = av_frame_make_writable(frame);
     if (ret < 0) {
         std::cout << "Av frame make writable failed." << std::endl;
+        av_frame_free(&frame);
         return nullptr;
     }
     //转换颜色空间为YUV420//如果颜色格式很多，那么需要switch case

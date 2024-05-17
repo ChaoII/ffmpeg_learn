@@ -10,11 +10,13 @@ extern "C" {
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 #include <libavcodec/avcodec.h>
+#include <libavutil/error.h>
 }
+
 
 void av_frame_to_mat(AVFrame *yuv_frame, AVFrame *bgr24_frame, SwsContext *sws_context);
 
-AVFrame *mat_to_av_frame(cv::Mat &image, AVPixelFormat pix_format=AV_PIX_FMT_YUV420P);
+AVFrame *mat_to_av_frame(cv::Mat &image, AVPixelFormat pix_format = AV_PIX_FMT_YUV420P);
 
 /// 获取format上下文中视频流的索引
 /// \param format_context

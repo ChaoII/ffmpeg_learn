@@ -31,7 +31,7 @@ int test_push() {
         cv::Mat frame;
         bool bSuccess = cap.read(frame);
         flip(frame, frame, 1);
-        pushUtils->push_frame(frame);
+        pushUtils->push_frame(std::move(frame.clone()));
         if (!bSuccess) {
             std::cout << "" << std::endl;
             break;
@@ -49,7 +49,7 @@ int test_push() {
 
 int main() {
     // 执行ffmpeg -hwaccels 查看硬解码设备
-//    HWDecodePlayer player("rtsp://172.168.1.112/live/test", "d3d12va");
+//    HWDecodePlayer player("rtsp://172.168.1.112:8554/live/test", "cuda");
 //    if (!player.init_parameters()) return -1;
 //    player.play();
 
