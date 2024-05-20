@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.20)
 project(ffmpeg2cv)
 
 
@@ -8,8 +8,16 @@ find_package(OpenCV REQUIRED)
 
 include_directories(${CMAKE_SOURCE_DIR})
 
-set(FFMPEG_INCLUDE_DIRS "E:/develop/ffmpeg/include")
-set(FFMPEG_LIBRARY_DIRS "E:/develop/ffmpeg/lib")
+if(WIN32)
+    set(FFMPEG_INCLUDE_DIRS "E:/develop/ffmpeg/include")
+    set(FFMPEG_LIBRARY_DIRS "E:/develop/ffmpeg/lib")
+else ()
+    set(FFMPEG_INCLUDE_DIRS "/usr/local/Cellar/ffmpeg/6.1.1_2/include")
+    set(FFMPEG_LIBRARY_DIRS "/usr/local/Cellar/ffmpeg/6.1.1_2/lib")
+    # 其他系统
+endif()
+
+
 set(FFMPEG_LIBRARIES avdevice
         avfilter
         avformat
