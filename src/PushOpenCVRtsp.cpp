@@ -90,7 +90,6 @@ int PushOpenCVRtsp::push() {
 int PushOpenCVRtsp::open_codec(int width, int height, int den) {
     int ret = 0;
     avformat_network_init();
-    av_log_set_level(AV_LOG_DEBUG); //启用日志
     // 硬编码器
     const AVCodec *encoder = nullptr;
     // hevc_nvenc h264_nvenc,h264_videotoolbox

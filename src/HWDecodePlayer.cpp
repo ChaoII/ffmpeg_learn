@@ -89,6 +89,7 @@ bool HWDecodePlayer::init_parameters() {
         return false;
     }
 
+
     AVPixelFormat src_video_pix_format = video_codec_context_->pix_fmt;
     is_hw_accel_ = check_and_set_hw_accel();
     if (is_hw_accel_) {

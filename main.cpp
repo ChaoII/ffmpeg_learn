@@ -48,11 +48,12 @@ int test_push() {
 
 
 int main() {
+//    av_log_set_level(AV_LOG_DEBUG); //启用日志
     // 执行ffmpeg -hwaccels 查看硬解码设备
-//    HWDecodePlayer player("rtsp://172.168.1.112:8554/live/test", "cuda");
-//    if (!player.init_parameters()) return -1;
-//    player.play();
+    HWDecodePlayer player("rtsp://localhost:8554/live/test", "videotoolbox");
+    if (!player.init_parameters()) return -1;
+    player.play();
 
-    test_push();
+//    test_push();
     return 0;
 }
