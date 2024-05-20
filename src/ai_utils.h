@@ -29,3 +29,5 @@ bool start_with(const std::string &str, const std::string &sub);
 bool end_with(const std::string &str, const std::string &sub);
 
 bool is_network_media(const std::string &media_file_str);
+
+bool is_contain(const std::string& str, const std::string& substr);

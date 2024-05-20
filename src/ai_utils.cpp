@@ -106,3 +106,8 @@ bool start_with(const std::string &str, const std::string &sub) {
 bool end_with(const std::string &str, std::string &sub) {
     return str.rfind(sub) == (str.length() - sub.length());
 }
+
+bool is_contain(const std::string &str, const std::string &substr) {
+    return str.find(substr) != std::string::npos;
+}
+

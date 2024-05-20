@@ -9,8 +9,9 @@
 char av_error[AV_ERROR_MAX_STRING_SIZE] = {0};
 #define av_err2str(err_num) av_make_error_string(av_error, AV_ERROR_MAX_STRING_SIZE, err_num)
 
-PushOpenCVRtsp::PushOpenCVRtsp(const char *dst_url) {
+PushOpenCVRtsp::PushOpenCVRtsp(const char *dst_url, const char *hw_accel) {
     dst_url_ = dst_url;
+    hw_accel_ = hw_accel;
 }
 
 int PushOpenCVRtsp::push() {
@@ -23,7 +24,12 @@ int PushOpenCVRtsp::push() {
         std::cerr << "Failed to allocate AVPacket" << std::endl;
         return AVERROR(ENOMEM);
     }
-
+    if (!(output_format_context_->oformat->flags & AVFMT_NOFILE)) {
+        if (avio_open(&output_format_context_->pb, dst_url_.c_str(), AVIO_FLAG_WRITE) < 0) {
+            std::cerr << "Could not open output file" << std::endl;
+            return -1;
+        }
+    }
     ret = avformat_write_header(output_format_context_, nullptr);
     if (ret < 0) {
         std::cerr << "Error occurred when writing header: " << av_err2str(ret) << std::endl;
@@ -84,11 +90,11 @@ int PushOpenCVRtsp::push() {
 int PushOpenCVRtsp::open_codec(int width, int height, int den) {
     int ret = 0;
     avformat_network_init();
-    //av_log_set_level(AV_LOG_DEBUG); //启用日志
+    av_log_set_level(AV_LOG_DEBUG); //启用日志
     // 硬编码器
     const AVCodec *encoder = nullptr;
-    // hevc_nvenc h264_nvenc
-    ret = set_encoder(&encoder, "h264_nvenc");
+    // hevc_nvenc h264_nvenc,h264_videotoolbox
+    ret = set_encoder(&encoder, hw_accel_.c_str());
     if (ret != 0) {
         return AVERROR(ENOMEM);
     }
@@ -121,10 +127,12 @@ int PushOpenCVRtsp::open_codec(int width, int height, int den) {
     av_dict_set(&options, "delay", "0", 0);
     av_dict_set(&options, "zerolatency", "0", 0);
     av_dict_set(&options, "strict_gop", "1", 0);
+    if (is_contain(encoder->long_name, "VideoToolbox")) {
+        av_dict_set(&options, "profile", "baseline", 0);
+    }
     // 硬件加速选项
     av_dict_set(&options, "preset", "fast", 0); // 使用硬件加速器
     av_dict_set(&options, "gpu", "0", 0); // 指定 GPU
-
 
     // 打开编码器上下文
     if ((ret = avcodec_open2(video_codec_context_, encoder, &options)) < 0) {

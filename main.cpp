@@ -23,7 +23,7 @@ int test_push() {
         std::cout << "无法打开摄像头！" << std::endl;
         return -1;
     }
-    auto pushUtils = new PushOpenCVRtsp("rtsp://172.168.1.112:8554/live/test1");
+    auto pushUtils = new PushOpenCVRtsp("rtsp://localhost:8554/live/test1","h264_videotoolbox");
     pushUtils->open_codec(640, 480, 25);
     pushUtils->start();
     namedWindow("test", cv::WINDOW_AUTOSIZE);

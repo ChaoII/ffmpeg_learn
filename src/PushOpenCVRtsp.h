@@ -9,7 +9,7 @@
 
 class PushOpenCVRtsp {
 public:
-    explicit PushOpenCVRtsp(const char *dst_url);
+    explicit PushOpenCVRtsp(const char *dst_url, const char *hw_accel);
 
     int open_codec(int width, int height, int den);
 
@@ -36,6 +36,7 @@ private:
     std::queue<cv::Mat> pic_buffer_;
     AVStream *out_av_stream_ = nullptr;
     std::string dst_url_;
+    std::string hw_accel_;
     AVFormatContext *output_format_context_ = nullptr;
     AVCodec *video_codec_ = nullptr;
     AVCodecContext *video_codec_context_ = nullptr;
