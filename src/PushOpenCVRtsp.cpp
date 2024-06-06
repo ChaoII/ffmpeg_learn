@@ -2,20 +2,16 @@
 // Created by AC on 2024/5/16.
 //
 
+
 #include "PushOpenCVRtsp.h"
-//#include <chrono>
 
+#include <utility>
 
-char av_error[AV_ERROR_MAX_STRING_SIZE] = {0};
-#define av_err2str(err_num) av_make_error_string(av_error, AV_ERROR_MAX_STRING_SIZE, err_num)
-
-PushOpenCVRtsp::PushOpenCVRtsp(const char *dst_url, const char *hw_accel) {
-    dst_url_ = dst_url;
-    hw_accel_ = hw_accel;
+PushOpenCVRtsp::PushOpenCVRtsp(PushStreamParameter parameter) : parameter_(std::move(parameter)) {
+    PushOpenCVRtsp::initial_lib();
 }
 
 int PushOpenCVRtsp::push() {
-    int ret = 0;
     cv::Mat frame;
     AVFrame *yuv = nullptr;
     long pts = 0;
@@ -25,19 +21,19 @@ int PushOpenCVRtsp::push() {
         return AVERROR(ENOMEM);
     }
     if (!(output_format_context_->oformat->flags & AVFMT_NOFILE)) {
-        if (avio_open(&output_format_context_->pb, dst_url_.c_str(), AVIO_FLAG_WRITE) < 0) {
+        if (avio_open(&output_format_context_->pb, parameter_.out_url.c_str(), AVIO_FLAG_WRITE) < 0) {
             std::cerr << "Could not open output file" << std::endl;
             return -1;
         }
     }
-    ret = avformat_write_header(output_format_context_, nullptr);
+    int ret = avformat_write_header(output_format_context_, nullptr);
     if (ret < 0) {
-        std::cerr << "Error occurred when writing header: " << av_err2str(ret) << std::endl;
+        std::cerr << "Error occurred when writing header: " << get_av_error(ret) << std::endl;
         av_packet_free(&pack);
         return ret;
     }
     while (!stop_signal_) {
-        frame = pop_one_frame();
+        frame = pop_dst_frame();
         if (frame.empty()) {
             continue;
         }
@@ -50,7 +46,7 @@ int PushOpenCVRtsp::push() {
         pts += 1;
         ret = avcodec_send_frame(video_codec_context_, yuv);
         if (ret != 0) {
-            std::cerr << "Error sending frame to encoder: " << av_err2str(ret) << std::endl;
+            std::cerr << "Error sending frame to encoder: " << get_av_error(ret) << std::endl;
             av_frame_free(&yuv);
             continue;
         }
@@ -60,7 +56,7 @@ int PushOpenCVRtsp::push() {
             if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 continue;
             } else {
-                std::cerr << "Error receiving packet from encoder: " << av_err2str(ret) << std::endl;
+                std::cerr << "Error receiving packet from encoder: " << get_av_error(ret) << std::endl;
                 continue;
             }
         }
@@ -74,7 +70,7 @@ int PushOpenCVRtsp::push() {
                                       out_av_stream_->time_base); // 数据时长
         ret = av_interleaved_write_frame(output_format_context_, pack);
         if (ret < 0) {
-            std::cerr << "Error sending packet to output: " << av_err2str(ret) << std::endl;
+            std::cerr << "Error sending packet to output: " << get_av_error(ret) << std::endl;
             av_frame_free(&yuv);
             av_packet_unref(pack);
             continue;
@@ -86,14 +82,10 @@ int PushOpenCVRtsp::push() {
     return ret;
 }
 
-
-int PushOpenCVRtsp::open_codec(int width, int height, int den) {
-    int ret = 0;
-    avformat_network_init();
+int PushOpenCVRtsp::open_codec() {
     // 硬编码器
     const AVCodec *encoder = nullptr;
-    // hevc_nvenc h264_nvenc,h264_videotoolbox
-    ret = set_encoder(&encoder, hw_accel_.c_str());
+    int ret = set_encoder(&encoder);
     if (ret != 0) {
         return AVERROR(ENOMEM);
     }
@@ -107,20 +99,120 @@ int PushOpenCVRtsp::open_codec(int width, int height, int den) {
     video_codec_context_->flags |= AV_CODEC_FLAG_LOW_DELAY;
     video_codec_context_->codec_id = encoder->id;
     video_codec_context_->codec_type = AVMEDIA_TYPE_VIDEO;
-    video_codec_context_->thread_count = 10;
-    video_codec_context_->bit_rate = 50 * 1024 * 8; // 压缩后每秒视频的bit位大小为50kb
-    video_codec_context_->width = width;
-    video_codec_context_->height = height;
-    video_codec_context_->time_base = {1, den};
-    video_codec_context_->framerate = {den, 1};
-    video_codec_context_->gop_size = 30;
-    video_codec_context_->max_b_frames = 2;
-    video_codec_context_->qmax = 51;
-    video_codec_context_->qmin = 10;
+    video_codec_context_->thread_count = parameter_.thread_nums;
+    video_codec_context_->bit_rate = parameter_.bit_rate;// 压缩后每秒视频的bit位大小为50kb
+    video_codec_context_->width = parameter_.width;
+    video_codec_context_->height = parameter_.height;
+    video_codec_context_->time_base = {1, parameter_.frame_rate};
+    video_codec_context_->framerate = {parameter_.frame_rate, 1};
+    video_codec_context_->gop_size = parameter_.gop_size;
+    video_codec_context_->max_b_frames = parameter_.max_b_frame;
+    video_codec_context_->qmax = parameter_.q_max;
+    video_codec_context_->qmin = parameter_.q_min;
     video_codec_context_->pix_fmt = AV_PIX_FMT_YUV420P;
-
-
     AVDictionary *options = nullptr;
+
+
+    initial_av_options(encoder, options);
+    // 打开编码器上下文
+    if ((ret = avcodec_open2(video_codec_context_, encoder, &options)) < 0) {
+        std::cout << "avcodec_open2 failed: " << get_av_error(ret) << std::endl;
+        return ret;
+    }
+    // 创建输出包装
+    ret = avformat_alloc_output_context2(&output_format_context_, nullptr, "rtsp", parameter_.out_url.c_str());
+    // 创建输出流
+    out_av_stream_ = avformat_new_stream(output_format_context_, encoder);
+    out_av_stream_->codecpar->codec_tag = 0;
+    // 从编码器复制参数
+    avcodec_parameters_from_context(out_av_stream_->codecpar, video_codec_context_);
+    return ret;
+}
+
+cv::Mat PushOpenCVRtsp::pop_src_frame() {
+    std::unique_lock<std::mutex> lock(src_queue_mutex_);
+    src_queue_cv_.wait(lock, [this]() { return !src_images_.empty(); });
+    // 转移所有权避免拷贝
+    cv::Mat tmp = std::move(src_images_.front());
+    src_images_.pop();
+    return tmp;
+}
+
+cv::Mat PushOpenCVRtsp::pop_dst_frame() {
+    std::unique_lock<std::mutex> lock(dst_queue_mutex_);
+    dst_queue_cv_.wait(lock, [this]() { return !dst_images_.empty(); });
+    // 转移所有权避免拷贝
+    cv::Mat tmp = std::move(dst_images_.front());
+    dst_images_.pop();
+    return tmp;
+}
+
+void PushOpenCVRtsp::push_src_frame(cv::Mat &&frame) {
+    {
+        std::unique_lock<std::mutex> lock(src_queue_mutex_);
+        if (src_images_.size() < 256) {
+            // 转移所有权避免复制
+            src_images_.push(std::move(frame));
+        }
+    }
+    src_queue_cv_.notify_all();
+}
+
+void PushOpenCVRtsp::push_dst_frame(cv::Mat &&frame) {
+    {
+        std::unique_lock<std::mutex> lock(dst_queue_mutex_);
+        if (dst_images_.size() < 256) {
+            // 转移所有权避免复制
+            dst_images_.push(std::move(frame));
+        }
+    }
+    dst_queue_cv_.notify_all();
+}
+
+void PushOpenCVRtsp::start() {
+    push_thread_ = std::thread(&PushOpenCVRtsp::push, this);
+    stop_signal_ = false;
+    push_thread_.detach();
+}
+
+
+void PushOpenCVRtsp::stop() {
+    stop_signal_ = true;
+}
+
+int PushOpenCVRtsp::set_encoder(const AVCodec **encoder) const {
+    if (parameter_.hw_accel == "none") {
+        // 默认使用h264软编码
+        *encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
+    } else {
+        *encoder = avcodec_find_encoder_by_name(parameter_.hw_accel.c_str());
+    }
+    if (!*encoder) {
+        std::cerr << "can't find encoder, please chose other encoders!" << std::endl;
+        return -1;
+    }
+    std::cout << "find encoder: " << (*encoder)->long_name << std::endl;
+    return 0;
+}
+
+void PushOpenCVRtsp::initial_lib() {
+    if (!library_initialed_) {
+        //初始化网络流格相关(使用网络流时必须先执行)
+        avformat_network_init();
+        //设置日志级别
+        //如果不想看到烦人的打印信息可以设置成 AV_LOG_QUIET 表示不打印日志
+        //有时候发现使用不正常比如打开了没法播放视频则需要打开日志看下报错提示
+        av_log_set_level(AV_LOG_QUIET);
+        std::cout << "initial ffmpeg success, ffmpeg version: " << FFMPEG_VERSION << std::endl;
+        library_initialed_ = true;
+    }
+}
+
+void PushOpenCVRtsp::set_hw_accel(const std::string &hw_accel_name) {
+    parameter_.hw_accel = hw_accel_name;
+}
+
+void PushOpenCVRtsp::initial_av_options(const AVCodec *encoder, AVDictionary *options) {
     av_dict_set(&options, "rc", "cbr", 0);
     av_dict_set(&options, "rc-lookahead", "0", 0);
     av_dict_set(&options, "delay", "0", 0);
@@ -132,65 +224,47 @@ int PushOpenCVRtsp::open_codec(int width, int height, int den) {
     // 硬件加速选项
     av_dict_set(&options, "preset", "fast", 0); // 使用硬件加速器
     av_dict_set(&options, "gpu", "0", 0); // 指定 GPU
+}
 
-    // 打开编码器上下文
-    if ((ret = avcodec_open2(video_codec_context_, encoder, &options)) < 0) {
-        std::cout << "avcodec_open2 failed!" << std::endl;
-        return ret;
+void PushOpenCVRtsp::set_resolution(int width, int height) {
+    parameter_.width = width;
+    parameter_.height = height;
+}
+
+void PushOpenCVRtsp::set_frame_rate(int frame_rate) {
+    parameter_.frame_rate = frame_rate;
+}
+
+
+void PushOpenCVRtsp::initial_models(const std::vector<ModelType> &model_types) {
+    for (auto &model_type: model_types) {
+        analysis_.emplace_back(model_type);
     }
-    // 创建输出包装
-    ret = avformat_alloc_output_context2(&output_format_context_, nullptr, "rtsp", dst_url_.c_str());
-    // 创建输出流
-    out_av_stream_ = avformat_new_stream(output_format_context_, encoder);
-    out_av_stream_->codecpar->codec_tag = 0;
-    // 从编码器复制参数
-    avcodec_parameters_from_context(out_av_stream_->codecpar, video_codec_context_);
-    return ret;
 }
 
-cv::Mat PushOpenCVRtsp::pop_one_frame() {
-    std::unique_lock<std::mutex> lock(queue_mutex_);
-    cv_.wait(lock, [this]() { return !pic_buffer_.empty(); });
-    // 转移所有权避免拷贝
-    cv::Mat tmp = std::move(pic_buffer_.front());
-    pic_buffer_.pop();
-    return tmp;
+cv::Mat PushOpenCVRtsp::predict(cv::Mat &image) {
+    for (auto &analysis: analysis_) {
+        image = analysis.predict(image);
+    }
+    return image;
 }
 
-void PushOpenCVRtsp::push_frame(cv::Mat &&frame) {
-    {
-        std::unique_lock<std::mutex> lock(queue_mutex_);
-        if (pic_buffer_.size() < 256) {
-            // 转移所有权避免复制
-            pic_buffer_.push(std::move(frame));
+void PushOpenCVRtsp::start_video_analysis() {
+    std::thread([=]() {
+        while (!stop_analysis_) {
+            auto image = pop_src_frame();
+            auto im = predict(image);
+            push_dst_frame(std::move(im));
         }
-    }
-    cv_.notify_all();
+    }).detach();
 }
 
-void PushOpenCVRtsp::start() {
-    push_thread_ = std::thread(&PushOpenCVRtsp::push, this);
-    stop_signal_ = false;
-    push_thread_.detach();
+void PushOpenCVRtsp::stop_analysis() {
+    stop_analysis_ = true;
 }
 
-void PushOpenCVRtsp::stop() {
-    stop_signal_ = true;
-}
 
-// hevc_nvenc h264_nvenc
-int PushOpenCVRtsp::set_encoder(const AVCodec **encoder, const char *hw_encoder_name) {
-    if (std::string(hw_encoder_name).empty()) {
-        *encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
-        std::cerr << "use cpu encode" << std::endl;
-    } else {
-        *encoder = avcodec_find_encoder_by_name(hw_encoder_name);
-        std::cerr << "use hw accelerate encode" << std::endl;
-    }
-    if (!*encoder) {
-        std::cerr << "Can't find encoder!" << std::endl;
-        return -1;
-    }
-    std::cout << "find encoder: " << (*encoder)->long_name << std::endl;
-    return 0;
-}
+
+
+
+

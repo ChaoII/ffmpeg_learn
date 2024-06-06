@@ -111,3 +111,9 @@ bool is_contain(const std::string &str, const std::string &substr) {
     return str.find(substr) != std::string::npos;
 }
 
+std::string get_av_error(int err_num) {
+    char err_buf[1024] = {0};
+    av_make_error_string(err_buf, 1024, err_num);
+    return err_buf;
+}
+

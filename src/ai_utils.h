@@ -11,6 +11,7 @@ extern "C" {
 #include <libswscale/swscale.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/error.h>
+#include <libavutil/ffversion.h>
 }
 
 
@@ -23,6 +24,7 @@ AVFrame *mat_to_av_frame(cv::Mat &image, AVPixelFormat pix_format = AV_PIX_FMT_Y
 /// \return 视频流的索引
 int get_video_stream_index(AVFormatContext *format_context);
 
+std::string get_av_error(int err_num);
 
 bool start_with(const std::string &str, const std::string &sub);
 
@@ -30,4 +32,4 @@ bool end_with(const std::string &str, const std::string &sub);
 
 bool is_network_media(const std::string &media_file_str);
 
-bool is_contain(const std::string& str, const std::string& substr);
+bool is_contain(const std::string &str, const std::string &substr);

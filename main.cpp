@@ -1,5 +1,5 @@
 #include <iostream>
-#include <iomanip>
+#include <thread>
 #include "src/HWDecodePlayer.h"
 #include "src/PushOpenCVRtsp.h"
 #include <opencv2/core/utils/logger.hpp>
@@ -23,15 +23,19 @@ int test_push() {
         std::cout << "无法打开摄像头！" << std::endl;
         return -1;
     }
-    auto pushUtils = new PushOpenCVRtsp("rtsp://localhost:8554/live/test1","h264_videotoolbox");
-    pushUtils->open_codec(640, 480, 25);
+    PushStreamParameter parameter;
+    auto pushUtils = new PushOpenCVRtsp(parameter);
+    pushUtils->set_hw_accel("h264_nvenc");
+    pushUtils->set_resolution(640, 480);
+    pushUtils->set_frame_rate(30);
+    pushUtils->open_codec();
     pushUtils->start();
     namedWindow("test", cv::WINDOW_AUTOSIZE);
     while (true) {
         cv::Mat frame;
         bool bSuccess = cap.read(frame);
         flip(frame, frame, 1);
-        pushUtils->push_frame(std::move(frame.clone()));
+        pushUtils->push_src_frame(std::move(frame.clone()));
         if (!bSuccess) {
             std::cout << "" << std::endl;
             break;
@@ -50,10 +54,25 @@ int test_push() {
 int main() {
 //    av_log_set_level(AV_LOG_DEBUG); //启用日志
     // 执行ffmpeg -hwaccels 查看硬解码设备
-    HWDecodePlayer player("rtsp://localhost:8554/live/test", "videotoolbox");
-    if (!player.init_parameters()) return -1;
-    player.play();
+//    HWDecodePlayer player("rtsp://localhost/live/test3", "cuda");
+//    if (!player.init_parameters()) return -1;
+//    player.play();
+//    std::vector<std::thread> threads;
+////    threads.reserve(2);
+//    threads.reserve(10);
+//for (int i = 0; i < 10; i++) {
+//        threads.emplace_back([=]() {
+//            HWDecodePlayer player("rtsp://localhost/live/test3", "cuda");
+//            player.init_parameters();
+//            std::cout << "----------------------------------------------:" << i << std::endl;
+//            player.play(std::to_string(i));
+//        });
+//    }
+//
+//    for (auto &th: threads) {
+//        th.join();
+//    }
 
-//    test_push();
+    test_push();
     return 0;
 }

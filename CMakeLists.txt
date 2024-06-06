@@ -4,21 +4,24 @@ project(ffmpeg2cv)
 
 set(CMAKE_CXX_STANDARD 17)
 
-find_package(OpenCV REQUIRED)
-
 include_directories(${CMAKE_SOURCE_DIR})
 
-if(WIN32)
+if (WIN32)
     set(FFMPEG_INCLUDE_DIRS "E:/develop/ffmpeg/include")
     set(FFMPEG_LIBRARY_DIRS "E:/develop/ffmpeg/lib")
 else ()
     set(FFMPEG_INCLUDE_DIRS "/usr/local/Cellar/ffmpeg/6.1.1_2/include")
     set(FFMPEG_LIBRARY_DIRS "/usr/local/Cellar/ffmpeg/6.1.1_2/lib")
     # 其他系统
-endif()
+endif ()
+
+include(E:/Fastdeploy/build/install/FastDeploy.cmake)
+# 添加FastDeploy依赖头文件
+include_directories(${FASTDEPLOY_INCS})
 
 
-set(FFMPEG_LIBRARIES avdevice
+set(FFMPEG_LIBRARIES
+        avdevice
         avfilter
         avformat
         avcodec
@@ -33,9 +36,7 @@ endif ()
 
 aux_source_directory(src SRC)
 
-message("${SRC}")
-
 add_executable(${PROJECT_NAME} ${SRC} main.cpp)
 target_include_directories(${PROJECT_NAME} PRIVATE ${FFMPEG_INCLUDE_DIRS})
 target_link_directories(${PROJECT_NAME} PRIVATE ${FFMPEG_LIBRARY_DIRS})
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${FFMPEG_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${FFMPEG_LIBRARIES} ${FASTDEPLOY_LIBS})

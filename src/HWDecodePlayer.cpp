@@ -114,18 +114,18 @@ bool HWDecodePlayer::init_parameters() {
     return true;
 }
 
-void HWDecodePlayer::play() {
+void HWDecodePlayer::play(const std::string &name) {
     while (av_read_frame(input_format_context_, packet_) >= 0 && !exit_flag_) {
         if (packet_->stream_index == video_stream_index_) {
             if (packet_->size > 0) {
-                decode_and_show();
+                decode_and_show(name);
             }
         }
         av_packet_unref(packet_);
     }
 }
 
-void HWDecodePlayer::decode_and_show() {
+void HWDecodePlayer::decode_and_show(const std::string &name) {
 
     int ret;
     ret = avcodec_send_packet(video_codec_context_, packet_);
@@ -134,6 +134,8 @@ void HWDecodePlayer::decode_and_show() {
         exit_flag_ = true;
     }
     while (ret >= 0) {
+
+        std::cout << "d---------:" << name << std::endl;
         ret = avcodec_receive_frame(video_codec_context_, yuv_frame_);
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
             return;
@@ -157,7 +159,7 @@ void HWDecodePlayer::decode_and_show() {
                   bgr24_frame_->data,
                   bgr24_frame_->linesize);
         if (image_.empty()) return;
-        cv::imshow("", image_);
+        cv::imshow(name, image_);
         if (cv::waitKey(2) == char('q')) {
             exit_flag_ = true;
         }
