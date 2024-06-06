@@ -27,7 +27,7 @@ int test_push() {
     auto pushUtils = new PushOpenCVRtsp(parameter);
     pushUtils->set_hw_accel("h264_nvenc");
     pushUtils->set_resolution(640, 480);
-    pushUtils->set_frame_rate(30);
+    pushUtils->set_frame_rate(10);
     pushUtils->open_codec();
     pushUtils->start();
     namedWindow("test", cv::WINDOW_AUTOSIZE);
@@ -47,6 +47,7 @@ int test_push() {
     }
     cap.release();
     cv::destroyAllWindows();
+    delete pushUtils;
     return 0;
 }
 

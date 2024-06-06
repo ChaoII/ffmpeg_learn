@@ -142,6 +142,7 @@ cv::Mat PushOpenCVRtsp::pop_dst_frame() {
     std::unique_lock<std::mutex> lock(dst_queue_mutex_);
     dst_queue_cv_.wait(lock, [this]() { return !dst_images_.empty(); });
     // 转移所有权避免拷贝
+    std::cout << "dst_images size: " << dst_images_.size() << std::endl;
     cv::Mat tmp = std::move(dst_images_.front());
     dst_images_.pop();
     return tmp;
@@ -173,6 +174,9 @@ void PushOpenCVRtsp::start() {
     push_thread_ = std::thread(&PushOpenCVRtsp::push, this);
     stop_signal_ = false;
     push_thread_.detach();
+    initial_models({ModelType::FACE_DETECT});
+
+    start_video_analysis();
 }
 
 
@@ -238,13 +242,13 @@ void PushOpenCVRtsp::set_frame_rate(int frame_rate) {
 
 void PushOpenCVRtsp::initial_models(const std::vector<ModelType> &model_types) {
     for (auto &model_type: model_types) {
-        analysis_.emplace_back(model_type);
+        analysis_.emplace_back(new VideoAnalysis(model_type));
     }
 }
 
 cv::Mat PushOpenCVRtsp::predict(cv::Mat &image) {
     for (auto &analysis: analysis_) {
-        image = analysis.predict(image);
+        image = analysis->predict(image);
     }
     return image;
 }
@@ -261,6 +265,15 @@ void PushOpenCVRtsp::start_video_analysis() {
 
 void PushOpenCVRtsp::stop_analysis() {
     stop_analysis_ = true;
+}
+
+PushOpenCVRtsp::~PushOpenCVRtsp() {
+    avcodec_free_context(&video_codec_context_);
+    avformat_close_input(&output_format_context_);
+    for (auto &analysis: analysis_) {
+        delete analysis;
+    }
+    analysis_.clear();
 }
 
 

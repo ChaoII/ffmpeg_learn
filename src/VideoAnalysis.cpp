@@ -12,7 +12,7 @@ VideoAnalysis::VideoAnalysis(const ModelType &model_type, bool use_gpu) {
     modelType_ = model_type;
     switch (model_type) {
         case ModelType::FACE_DETECT: {
-            std::string model_file = "1";
+            std::string model_file = "version-RFB-320-sim.onnx";
             model_ = new fastdeploy::vision::facedet::UltraFace(model_file, "", option);
             break;
         }
@@ -45,6 +45,7 @@ VideoAnalysis::~VideoAnalysis() {
 
         }
     }
+    std::cout << "delete" << std::endl;
 }
 
 

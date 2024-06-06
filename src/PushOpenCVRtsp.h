@@ -56,14 +56,13 @@ public:
 
     void initial_models(const std::vector<ModelType> &model_types);
 
-    void video_analysis();
-
     void start_video_analysis();
 
     void stop_analysis();
 
-
     cv::Mat predict(cv::Mat &image);
+
+    ~PushOpenCVRtsp();
 
 private:
 
@@ -91,7 +90,7 @@ private:
     AVCodecContext *video_codec_context_ = nullptr;
     inline static bool library_initialed_ = false;
     bool stop_analysis_ = false;
-    std::vector<VideoAnalysis> analysis_;
+    std::vector<VideoAnalysis*> analysis_;
 };
 
 
