@@ -5,6 +5,7 @@
 #pragma once
 
 #include <opencv2/opencv.hpp>
+#include "log.h"
 
 extern "C" {
 #include <libavformat/avformat.h>

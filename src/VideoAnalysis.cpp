@@ -6,8 +6,9 @@
 
 
 VideoAnalysis::VideoAnalysis(const ModelType &model_type, bool use_gpu) {
-
+    fastdeploy::FDLogger::enable_info = false;
     fastdeploy::RuntimeOption option;
+    option.SetCpuThreadNum(1);
     if (use_gpu) option.UseGpu();
     modelType_ = model_type;
     switch (model_type) {

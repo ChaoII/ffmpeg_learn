@@ -11,7 +11,7 @@
 
 
 struct PushStreamParameter {
-    std::string out_url = "rtsp://172.168.1.112/live/test";
+    std::string out_url = "rtsp://172.168.1.112:8554/live/test";
     // hevc_nvenc h264_nvenc,h264_videotoolbox
     std::string hw_accel = "none";
     int thread_nums = 1;
@@ -19,9 +19,9 @@ struct PushStreamParameter {
     int bit_rate = 409600;
     int width = 640;
     int height = 480;
-    int frame_rate = 30;
+    int frame_rate = 25;
     int gop_size = 30;
-    int max_b_frame = 2;
+    int max_b_frame = 1;
     int q_min = 10;
     int q_max = 51;
     AVPixelFormat pix_format = AV_PIX_FMT_YUV420P;
@@ -56,8 +56,6 @@ public:
 
     void initial_models(const std::vector<ModelType> &model_types);
 
-    void start_video_analysis();
-
     void stop_analysis();
 
     cv::Mat predict(cv::Mat &image);
@@ -65,6 +63,8 @@ public:
     ~PushOpenCVRtsp();
 
 private:
+
+    void analysis();
 
     int push();
 
@@ -90,7 +90,7 @@ private:
     AVCodecContext *video_codec_context_ = nullptr;
     inline static bool library_initialed_ = false;
     bool stop_analysis_ = false;
-    std::vector<VideoAnalysis*> analysis_;
+    std::vector<VideoAnalysis *> analysis_;
 };
 
 

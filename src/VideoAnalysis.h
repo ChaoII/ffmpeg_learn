@@ -23,7 +23,6 @@ private:
     fastdeploy::FastDeployModel *model_;
 
     ModelType modelType_;
-
 };
 
 
