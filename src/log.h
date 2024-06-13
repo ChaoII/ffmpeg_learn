@@ -63,7 +63,6 @@ private:
     std::string color_;
     bool verbose_ = true;
     std::string color_end_ = "\033[0m";
-
 };
 
 

@@ -21,7 +21,8 @@ struct PushStreamParameter {
     int height = 480;
     int frame_rate = 25;
     int gop_size = 30;
-    int max_b_frame = 1;
+    // 想要支持webrtc不能使用b帧
+    int max_b_frame = 0;
     int q_min = 10;
     int q_max = 51;
     AVPixelFormat pix_format = AV_PIX_FMT_YUV420P;
@@ -73,7 +74,6 @@ private:
     cv::Mat pop_src_frame();
 
 private:
-
 
     PushStreamParameter parameter_;
     bool stop_signal_ = true;

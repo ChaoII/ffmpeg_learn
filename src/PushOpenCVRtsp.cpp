@@ -14,23 +14,11 @@ PushOpenCVRtsp::PushOpenCVRtsp(PushStreamParameter parameter) : parameter_(std::
 int PushOpenCVRtsp::push() {
     cv::Mat frame;
     AVFrame *yuv = nullptr;
-    long pts = 0;
+    long pts = 0, ret = -1;
     AVPacket *pack = av_packet_alloc();
     if (!pack) {
         std::cerr << "Failed to allocate AVPacket" << std::endl;
         return AVERROR(ENOMEM);
-    }
-    if (!(output_format_context_->oformat->flags & AVFMT_NOFILE)) {
-        if (avio_open(&output_format_context_->pb, parameter_.out_url.c_str(), AVIO_FLAG_WRITE) < 0) {
-            VPERROR << "Could not open output file";
-            return -1;
-        }
-    }
-    int ret = avformat_write_header(output_format_context_, nullptr);
-    if (ret < 0) {
-        fastdeploy::FDINFO << "Error occurred when writing header: " << get_av_error(ret);
-        av_packet_free(&pack);
-        return ret;
     }
 
     while (!stop_signal_) {
@@ -64,13 +52,12 @@ int PushOpenCVRtsp::push() {
 //        if (pack->dts < 0 || pack->pts < 0 || pack->dts > pack->pts) {
 //            pack->dts = pack->pts = pack->duration = 0;
 //        }
-
-        av_packet_rescale_ts(pack, video_codec_context_->time_base, out_av_stream_->time_base);
-
 //        pack->pts = av_rescale_q(pack->pts, video_codec_context_->time_base, out_av_stream_->time_base); // 显示时间
 //        pack->dts = av_rescale_q(pack->dts, video_codec_context_->time_base, out_av_stream_->time_base); // 解码时间
 //        pack->duration = av_rescale_q(pack->duration, video_codec_context_->time_base,
 //                                      out_av_stream_->time_base); // 数据时长
+
+        av_packet_rescale_ts(pack, video_codec_context_->time_base, out_av_stream_->time_base);
         ret = av_interleaved_write_frame(output_format_context_, pack);
         if (ret < 0) {
             VPERROR << "Error sending packet to output: " << get_av_error(ret);
@@ -111,8 +98,8 @@ int PushOpenCVRtsp::open_codec() {
     video_codec_context_->time_base = {1, parameter_.frame_rate};
     video_codec_context_->gop_size = parameter_.gop_size;
     video_codec_context_->max_b_frames = parameter_.max_b_frame;
-//    video_codec_context_->qmax = parameter_.q_max;
-//    video_codec_context_->qmin = parameter_.q_min;
+    video_codec_context_->qmax = parameter_.q_max;
+    video_codec_context_->qmin = parameter_.q_min;
     video_codec_context_->pix_fmt = AV_PIX_FMT_YUV420P;
     AVDictionary *options = nullptr;
 
@@ -125,11 +112,26 @@ int PushOpenCVRtsp::open_codec() {
     }
     // 创建输出包装
     ret = avformat_alloc_output_context2(&output_format_context_, nullptr, "rtsp", parameter_.out_url.c_str());
+    if (ret < 0) {
+        VPERROR << "Error occurred when avformat alloc output context : " << get_av_error(ret);
+        return ret;
+    }
     // 创建输出流
     out_av_stream_ = avformat_new_stream(output_format_context_, encoder);
     out_av_stream_->codecpar->codec_tag = 0;
     // 从编码器复制参数
     avcodec_parameters_from_context(out_av_stream_->codecpar, video_codec_context_);
+    if (!(output_format_context_->oformat->flags & AVFMT_NOFILE)) {
+        if (avio_open(&output_format_context_->pb, parameter_.out_url.c_str(), AVIO_FLAG_WRITE) < 0) {
+            VPERROR << "Could not open output file";
+            return -1;
+        }
+    }
+    ret = avformat_write_header(output_format_context_, nullptr);
+    if (ret < 0) {
+        VPERROR << "Error occurred when writing header: " << get_av_error(ret);
+        return ret;
+    }
     return ret;
 }
 
@@ -160,7 +162,7 @@ cv::Mat PushOpenCVRtsp::pop_dst_frame() {
 void PushOpenCVRtsp::push_src_frame(cv::Mat &&frame) {
     {
         std::unique_lock<std::mutex> lock(src_queue_mutex_);
-        if (src_images_.size() < 256) {
+        if (src_images_.size() < 5) {
             // 转移所有权避免复制
             src_images_.push(std::move(frame));
         }
@@ -171,7 +173,7 @@ void PushOpenCVRtsp::push_src_frame(cv::Mat &&frame) {
 void PushOpenCVRtsp::push_dst_frame(cv::Mat &&frame) {
     {
         std::unique_lock<std::mutex> lock(dst_queue_mutex_);
-        if (dst_images_.size() < 256) {
+        if (dst_images_.size() < 5) {
             // 转移所有权避免复制
             dst_images_.push(std::move(frame));
         }
