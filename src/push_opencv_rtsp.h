@@ -7,7 +7,7 @@
 #include "src/ai_utils.h"
 #include <thread>
 #include <queue>
-#include "VideoAnalysis.h"
+#include "video_analysis.h"
 
 
 struct PushStreamParameter {
@@ -29,9 +29,9 @@ struct PushStreamParameter {
 };
 
 
-class PushOpenCVRtsp {
+class push_opencv_rtsp {
 public:
-    explicit PushOpenCVRtsp(PushStreamParameter parameter);
+    explicit push_opencv_rtsp(PushStreamParameter parameter);
 
     int open_codec();
 
@@ -61,7 +61,7 @@ public:
 
     cv::Mat predict(cv::Mat &image);
 
-    ~PushOpenCVRtsp();
+    ~push_opencv_rtsp();
 
 private:
 
@@ -90,7 +90,7 @@ private:
     AVCodecContext *video_codec_context_ = nullptr;
     inline static bool library_initialed_ = false;
     bool stop_analysis_ = false;
-    std::vector<VideoAnalysis *> analysis_;
+    std::vector<video_analysis *> analysis_;
 };
 
 

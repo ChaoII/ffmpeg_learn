@@ -2,10 +2,10 @@
 // Created by AC on 2024/6/6.
 //
 
-#include "VideoAnalysis.h"
+#include "video_analysis.h"
 
 
-VideoAnalysis::VideoAnalysis(const ModelType &model_type, bool use_gpu) {
+video_analysis::video_analysis(const ModelType &model_type, bool use_gpu) {
     fastdeploy::FDLogger::enable_info = false;
     fastdeploy::RuntimeOption option;
     option.SetCpuThreadNum(1);
@@ -30,7 +30,7 @@ VideoAnalysis::VideoAnalysis(const ModelType &model_type, bool use_gpu) {
     }
 }
 
-VideoAnalysis::~VideoAnalysis() {
+video_analysis::~video_analysis() {
     switch (modelType_) {
         case ModelType::FACE_DETECT: {
             delete static_cast<fastdeploy::vision::facedet::UltraFace *>(model_);
@@ -49,7 +49,7 @@ VideoAnalysis::~VideoAnalysis() {
 }
 
 
-cv::Mat VideoAnalysis::predict(cv::Mat &image) {
+cv::Mat video_analysis::predict(cv::Mat &image) {
     switch (modelType_) {
         case ModelType::FACE_DETECT: {
             fastdeploy::vision::FaceDetectionResult res;

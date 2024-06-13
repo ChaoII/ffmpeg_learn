@@ -11,11 +11,11 @@ enum class ModelType {
     PERSON_DETECT
 };
 
-class VideoAnalysis {
+class video_analysis {
 public:
-    explicit VideoAnalysis(const ModelType &model_type, bool use_gpu = false);
+    explicit video_analysis(const ModelType &model_type, bool use_gpu = false);
 
-    ~VideoAnalysis();
+    ~video_analysis();
 
     cv::Mat predict(cv::Mat &image);
 

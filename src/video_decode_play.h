@@ -12,14 +12,14 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 }
 
-class HWDecodePlayer { ;
+class video_decode_play { ;
 
 public:
     void play(const std::string& name);
 
-    explicit HWDecodePlayer(const char *media_file_path, const char *hw_accel_device);
+    explicit video_decode_play(const char *media_file_path, const char *hw_accel_device);
 
-    ~HWDecodePlayer();
+    ~video_decode_play();
 
     bool init_parameters();
 

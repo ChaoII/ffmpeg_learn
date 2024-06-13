@@ -2,16 +2,16 @@
 // Created by AC on 2024/5/15.
 //
 
-#include "HWDecodePlayer.h"
+#include "video_decode_play.h"
 
 
-HWDecodePlayer::HWDecodePlayer(const char *media_file_path, const char *hw_accel_device) {
+video_decode_play::video_decode_play(const char *media_file_path, const char *hw_accel_device) {
     media_file_path_ = media_file_path;
     hw_accel_device_ = hw_accel_device;
     init_ffmpeg_variables();
 }
 
-HWDecodePlayer::~HWDecodePlayer() {
+video_decode_play::~video_decode_play() {
     av_frame_free(&yuv_frame_);
     av_frame_free(&nv12_frame_);
     av_frame_free(&bgr24_frame_);
@@ -21,7 +21,7 @@ HWDecodePlayer::~HWDecodePlayer() {
     av_buffer_unref(&hw_device_ctx_);
 }
 
-int HWDecodePlayer::hw_decoder_init(AVCodecContext *ctx, const enum AVHWDeviceType type) {
+int video_decode_play::hw_decoder_init(AVCodecContext *ctx, const enum AVHWDeviceType type) {
     int err = 0;
     if ((err = av_hwdevice_ctx_create(&hw_device_ctx_, type,
                                       nullptr, nullptr, 0)) < 0) {
@@ -32,8 +32,8 @@ int HWDecodePlayer::hw_decoder_init(AVCodecContext *ctx, const enum AVHWDeviceTy
     return err;
 }
 
-AVPixelFormat HWDecodePlayer::get_hw_format(AVCodecContext *ctx,
-                                            const enum AVPixelFormat *pix_fmts) {
+AVPixelFormat video_decode_play::get_hw_format(AVCodecContext *ctx,
+                                               const enum AVPixelFormat *pix_fmts) {
     const enum AVPixelFormat *p;
     for (p = pix_fmts; *p != -1; p++) {
         if (*p == hw_pix_fmt_)
@@ -44,7 +44,7 @@ AVPixelFormat HWDecodePlayer::get_hw_format(AVCodecContext *ctx,
 }
 
 
-void HWDecodePlayer::init_ffmpeg_variables() {
+void video_decode_play::init_ffmpeg_variables() {
     if (is_network_media(media_file_path_)) {
         av_dict_set(&options_, "buffer_size", "1024000", 0);
         av_dict_set(&options_, "max_delay", "500", 0);
@@ -59,7 +59,7 @@ void HWDecodePlayer::init_ffmpeg_variables() {
     bgr24_frame_ = av_frame_alloc();
 }
 
-bool HWDecodePlayer::init_parameters() {
+bool video_decode_play::init_parameters() {
 
     if (avformat_open_input(&input_format_context_, media_file_path_.c_str(), nullptr, &options_) != 0) {
         std::cout << "cant not open video file" << std::endl;
@@ -114,7 +114,7 @@ bool HWDecodePlayer::init_parameters() {
     return true;
 }
 
-void HWDecodePlayer::play(const std::string &name) {
+void video_decode_play::play(const std::string &name) {
     while (av_read_frame(input_format_context_, packet_) >= 0 && !exit_flag_) {
         if (packet_->stream_index == video_stream_index_) {
             if (packet_->size > 0) {
@@ -125,7 +125,7 @@ void HWDecodePlayer::play(const std::string &name) {
     }
 }
 
-void HWDecodePlayer::decode_and_show(const std::string &name) {
+void video_decode_play::decode_and_show(const std::string &name) {
 
     int ret;
     ret = avcodec_send_packet(video_codec_context_, packet_);
@@ -167,7 +167,7 @@ void HWDecodePlayer::decode_and_show(const std::string &name) {
 }
 
 
-bool HWDecodePlayer::check_and_set_hw_accel() {
+bool video_decode_play::check_and_set_hw_accel() {
     //获取支持该decoder的hw配置型
     hw_device_type_ = av_hwdevice_find_type_by_name(hw_accel_device_.c_str());
     if (hw_device_type_ == AV_HWDEVICE_TYPE_NONE) {

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <thread>
-#include "src/HWDecodePlayer.h"
-#include "src/PushOpenCVRtsp.h"
+#include "src/video_decode_play.h"
+#include "src/push_opencv_rtsp.h"
 #include <opencv2/core/utils/logger.hpp>
 
 extern "C" {
@@ -24,7 +24,7 @@ int test_push() {
         return -1;
     }
     PushStreamParameter parameter;
-    auto pushUtils = new PushOpenCVRtsp(parameter);
+    auto pushUtils = new push_opencv_rtsp(parameter);
     pushUtils->set_hw_accel("h264_nvenc");
     pushUtils->set_resolution(640, 480);
     pushUtils->set_frame_rate(10);
@@ -55,7 +55,7 @@ int test_push() {
 int main() {
 //    av_log_set_level(AV_LOG_DEBUG); //启用日志
     // 执行ffmpeg -hwaccels 查看硬解码设备
-//    HWDecodePlayer player("rtsp://localhost/live/test3", "cuda");
+//    video_decode_play player("rtsp://localhost/live/test3", "cuda");
 //    if (!player.init_parameters()) return -1;
 //    player.play();
 //    std::vector<std::thread> threads;
@@ -63,7 +63,7 @@ int main() {
 //    threads.reserve(10);
 //for (int i = 0; i < 10; i++) {
 //        threads.emplace_back([=]() {
-//            HWDecodePlayer player("rtsp://localhost/live/test3", "cuda");
+//            video_decode_play player("rtsp://localhost/live/test3", "cuda");
 //            player.init_parameters();
 //            std::cout << "----------------------------------------------:" << i << std::endl;
 //            player.play(std::to_string(i));
