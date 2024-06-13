@@ -46,7 +46,6 @@ VideoAnalysis::~VideoAnalysis() {
 
         }
     }
-    std::cout << "delete" << std::endl;
 }
 
 

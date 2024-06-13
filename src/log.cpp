@@ -12,10 +12,16 @@ void SetLogger(bool enable_info, bool enable_warning) {
     VPLogger::enable_warning = enable_warning;
 }
 
-VPLogger::VPLogger(bool verbose, const std::string &prefix) {
+VPLogger::VPLogger(bool verbose, const std::string &color, const std::string &prefix) {
     verbose_ = verbose;
     line_ = "";
     prefix_ = prefix;
+    if (_isatty(_fileno(stdout))) {
+        color_ = color;
+    } else {
+        color_ = "";
+        color_end_ = "";
+    }
 }
 
 VPLogger &VPLogger::operator<<(std::ostream &(*os)(std::ostream &)) {

@@ -32,6 +32,7 @@ int PushOpenCVRtsp::push() {
         av_packet_free(&pack);
         return ret;
     }
+
     while (!stop_signal_) {
         frame = pop_dst_frame();
         if (frame.empty()) {
@@ -80,6 +81,7 @@ int PushOpenCVRtsp::push() {
         av_frame_free(&yuv);
         av_packet_unref(pack);
     }
+    VPINFO << "stop push";
     av_packet_free(&pack);
     return ret;
 }
@@ -133,7 +135,7 @@ int PushOpenCVRtsp::open_codec() {
 
 cv::Mat PushOpenCVRtsp::pop_src_frame() {
     std::unique_lock<std::mutex> lock(src_queue_mutex_);
-    src_queue_cv_.wait(lock, [this]() { return !src_images_.empty(); });
+    src_queue_cv_.wait(lock, [this]() { return !src_images_.empty() || stop_signal_; });
     if (src_images_.empty()) {
         return {};
     }
@@ -145,7 +147,7 @@ cv::Mat PushOpenCVRtsp::pop_src_frame() {
 
 cv::Mat PushOpenCVRtsp::pop_dst_frame() {
     std::unique_lock<std::mutex> lock(dst_queue_mutex_);
-    dst_queue_cv_.wait(lock, [this]() { return !dst_images_.empty(); });
+    dst_queue_cv_.wait(lock, [this]() { return !dst_images_.empty() || stop_signal_; });
     if (dst_images_.empty()) {
         return {};
     }
@@ -187,8 +189,18 @@ void PushOpenCVRtsp::start() {
 
 
 void PushOpenCVRtsp::stop() {
+
     stop_signal_ = true;
     stop_analysis_ = true;
+    {
+        std::unique_lock<std::mutex> lock(src_queue_mutex_);
+        src_queue_cv_.notify_all();  // 通知等待在 src_queue_cv_ 的所有线程
+    }
+    {
+        std::unique_lock<std::mutex> lock(dst_queue_mutex_);
+        dst_queue_cv_.notify_all();  // 通知等待在 dst_queue_cv_ 的所有线程
+    }
+
     if (analysis_thread_.joinable()) {
         analysis_thread_.join();
     }
@@ -221,6 +233,7 @@ void PushOpenCVRtsp::analysis() {
         image = predict(image);
         push_dst_frame(std::move(image));
     }
+    VPINFO << "stop analysis";
 }
 
 void PushOpenCVRtsp::initial_lib() {
@@ -242,7 +255,6 @@ void PushOpenCVRtsp::set_hw_accel(const std::string &hw_accel_name) {
 
 void PushOpenCVRtsp::initial_av_options(const AVCodec *encoder, AVDictionary *options) {
 
-
     if (video_codec_context_->codec_id == AV_CODEC_ID_H264) {
         av_dict_set(&options, "preset", "superfast", 0);
         av_dict_set(&options, "tune", "zerolatency", 0);
@@ -257,7 +269,8 @@ void PushOpenCVRtsp::initial_av_options(const AVCodec *encoder, AVDictionary *op
     av_dict_set(&options, "rc", "cbr", 0);
     av_dict_set(&options, "strict_gop", "1", 0);
 
-
+    av_dict_set(&options, "profile", "high", 0);
+    av_dict_set(&options, "sc_threshold", "600", 0);
     av_dict_set(&options, "buffer_size", "40960000", 0);
     //设置超时断开连接时间(单位微秒/3000000表示3秒)
     av_dict_set(&options, "stimeout", "3000000", 0);

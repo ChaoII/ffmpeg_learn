@@ -6,6 +6,24 @@
 #include <iostream>
 #include <sstream>
 
+#ifdef _WIN32
+
+#include <io.h>
+
+#define isatty _isatty
+#else
+#include <unistd.h>
+#endif
+
+
+#define RED "\033[31m"
+#define GREEN "\033[32m"
+#define YELLOW "\033[33m"
+#define BLUE "\033[34m"
+#define MAGENTA "\033[35m"
+#define CYAN "\033[36m"
+#define RESET "\033[0m"
+
 
 class VPLogger {
 public:
@@ -18,7 +36,7 @@ public:
         verbose_ = true;
     }
 
-    explicit VPLogger(bool verbose, const std::string &prefix = "[FastDeploy]");
+    explicit VPLogger(bool verbose, const std::string &color, const std::string &prefix = "[FastDeploy]");
 
     template<typename T>
     VPLogger &operator<<(const T &val) {
@@ -35,14 +53,17 @@ public:
 
     ~VPLogger() {
         if (verbose_ && !line_.empty()) {
-            std::cout << prefix_ << " " << line_ << std::endl;
+            std::cout << color_ << prefix_ << " " << line_ << color_end_ << std::endl;
         }
     }
 
 private:
     std::string line_;
     std::string prefix_;
+    std::string color_;
     bool verbose_ = true;
+    std::string color_end_ = "\033[0m";
+
 };
 
 
@@ -51,13 +72,13 @@ private:
 #endif
 
 #define VPERROR                                                                \
-  VPLogger(true, "[ERROR]")                                                    \
+  VPLogger(true, RED, "[ERROR]")                                                    \
       << __REL_FILE__ << "(" << __LINE__ << ")::" << __FUNCTION__ << "\t"
 
 #define VPWARNING                                                              \
-  VPLogger(VPLogger::enable_warning, "[WARNING]")                  \
+  VPLogger(VPLogger::enable_warning, YELLOW, "[WARNING]")                  \
       << __REL_FILE__ << "(" << __LINE__ << ")::" << __FUNCTION__ << "\t"
 
-#define VPINFO  VPLogger(VPLogger::enable_info, "[INFO]")<< "\t"
+#define VPINFO  VPLogger(VPLogger::enable_info, GREEN ,"[INFO]")<< "\t"
 
 
