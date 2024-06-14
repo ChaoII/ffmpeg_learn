@@ -93,7 +93,7 @@ int test_push_c() {
 void test_play() {
     av_log_set_level(AV_LOG_DEBUG); //启用日志
     //执行ffmpeg -hwaccels 查看硬解码设备
-    video_decode_play player("rtsp://localhost/live/test3", "cuda");
+    VideoDecodePlay player("rtsp://localhost/live/test3", "cuda");
     if (!player.init_parameters()) return;
     player.play("cece");
 }

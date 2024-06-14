@@ -12,14 +12,14 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 }
 
-class video_decode_play { ;
+class DECL_VP VideoDecodePlay {
 
 public:
-    void play(const std::string& name);
+    void play(const std::string &name);
 
-    explicit video_decode_play(const char *media_file_path, const char *hw_accel_device);
+    explicit VideoDecodePlay(const char *media_file_path, const char *hw_accel_device);
 
-    ~video_decode_play();
+    ~VideoDecodePlay();
 
     bool init_parameters();
 
@@ -28,7 +28,7 @@ private:
 
     void init_ffmpeg_variables();
 
-    void decode_and_show(const std::string& name);
+    void decode_and_show(const std::string &name);
 
     static int hw_decoder_init(AVCodecContext *ctx, enum AVHWDeviceType type);
 

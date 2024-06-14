@@ -1,8 +1,6 @@
 //
 // Created by AC on 2024/6/13.
 //
-#include <cstring>
-#include <string.h>
 #include "video_push_api.h"
 #include "src/push_opencv_rtsp.h"
 
@@ -47,20 +45,20 @@ PushStreamParameterCWrapper *vp_c_parameter_to_cpp_parameter(CPushStreamParamete
 //***********************************内部使用*******************************************************
 
 
-typedef struct PushOpenCVRtspCWrapper {
+typedef struct CPushStreamContext {
     std::unique_ptr<PushOpenCVRtsp> push_opencv_rtsp;
-} PushOpenCVRtspCWrapper;
+} CPushStreamContext;
 
 
-PushOpenCVRtspCWrapper *vp_create_push_stream_context(CPushStreamParameter *parameter) {
-    auto push_stream_context = new PushOpenCVRtspCWrapper();
+CPushStreamContext *vp_create_push_stream_context(CPushStreamParameter *parameter) {
+    auto push_stream_context = new CPushStreamContext();
     auto cpp_parameter = vp_c_parameter_to_cpp_parameter(parameter);
     push_stream_context->push_opencv_rtsp = std::make_unique<PushOpenCVRtsp>(std::move(cpp_parameter->parameter));
     vp_free_push_stream_parameter_c_wrapper(cpp_parameter);
     return push_stream_context;
 }
 
-void vp_free_push_stream_context(PushOpenCVRtspCWrapper *push_stream_wrapper) {
+void vp_free_push_stream_context(CPushStreamContext *push_stream_wrapper) {
     delete push_stream_wrapper;
 }
 
@@ -124,19 +122,19 @@ void vp_free_push_stream_parameter(CPushStreamParameter *param) {
 }
 
 
-void vp_start_push_stream_thread(PushOpenCVRtspCWrapper *push_stream_wrapper) {
+void vp_start_push_stream_thread(CPushStreamContext *push_stream_wrapper) {
     push_stream_wrapper->push_opencv_rtsp->start();
 }
 
 void
-vp_enqueue_push_stream_frame(PushOpenCVRtspCWrapper *push_stream_wrapper, unsigned char *buffer, int w, int h,
+vp_enqueue_push_stream_frame(CPushStreamContext *push_stream_wrapper, unsigned char *buffer, int w, int h,
                              int channel) {
     push_stream_wrapper->push_opencv_rtsp->push_src_frame(
             std::move(cv::Mat(h, w, CV_MAKE_TYPE(CV_8U, channel), buffer).clone())
     );
 }
 
-void vp_set_push_stream_hw_accel(PushOpenCVRtspCWrapper *push_stream_wrapper, const char *hw_accel) {
+void vp_set_push_stream_hw_accel(CPushStreamContext *push_stream_wrapper, const char *hw_accel) {
     push_stream_wrapper->push_opencv_rtsp->set_hw_accel(hw_accel);
 }
 

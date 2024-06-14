@@ -31,7 +31,7 @@ struct PushStreamParameter {
 };
 
 
-class PushOpenCVRtsp {
+class DECL_VP PushOpenCVRtsp {
 public:
     explicit PushOpenCVRtsp(std::unique_ptr<PushStreamParameter> parameter);
 

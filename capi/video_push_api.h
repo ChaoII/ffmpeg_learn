@@ -51,12 +51,12 @@ typedef struct CPushStreamParameter {
 } CPushStreamParameter;
 
 
-typedef struct PushOpenCVRtspCWrapper PushOpenCVRtspCWrapper;
+typedef struct CPushStreamContext CPushStreamContext;
 
 
-DECL_CAPI PushOpenCVRtspCWrapper *vp_create_push_stream_context(CPushStreamParameter *param);
+DECL_CAPI CPushStreamContext *vp_create_push_stream_context(CPushStreamParameter *param);
 
-DECL_CAPI void vp_free_push_stream_context(PushOpenCVRtspCWrapper *push_stream_wrapper);
+DECL_CAPI void vp_free_push_stream_context(CPushStreamContext *push_stream_context);
 
 DECL_CAPI CPushStreamParameter *
 vp_create_push_stream_parameter(const char *dst_url, const char *hw_accel, int ffmpeg_thread_num,
@@ -68,13 +68,13 @@ DECL_CAPI CPushStreamParameter *vp_init_push_stream_parameter();
 
 DECL_CAPI void vp_free_push_stream_parameter(CPushStreamParameter *param);
 
-DECL_CAPI void vp_start_push_stream_thread(PushOpenCVRtspCWrapper *push_stream_wrapper);
+DECL_CAPI void vp_start_push_stream_thread(CPushStreamContext *push_stream_context);
 
 DECL_CAPI void
-vp_enqueue_push_stream_frame(PushOpenCVRtspCWrapper *push_stream_wrapper, unsigned char *buffer, int w, int h,
+vp_enqueue_push_stream_frame(CPushStreamContext *push_stream_context, unsigned char *buffer, int w, int h,
                              int channel);
 
-DECL_CAPI void vp_set_push_stream_hw_accel(PushOpenCVRtspCWrapper *push_stream_wrapper, const char *hw_accel);
+DECL_CAPI void vp_set_push_stream_hw_accel(CPushStreamContext *push_stream_context, const char *hw_accel);
 
 #ifdef __cplusplus
 }

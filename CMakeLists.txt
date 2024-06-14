@@ -45,8 +45,8 @@ if (EXPORT_CAPI)
     list(APPEND SOURCES ${CSOURCES})
 endif ()
 
-
-add_library(VideoPush  ${SOURCES})
+add_definitions(-DVP)
+add_library(VideoPush SHARED ${SOURCES})
 target_include_directories(VideoPush PUBLIC ${FFMPEG_INCLUDE_DIRS})
 target_link_directories(VideoPush PUBLIC ${FFMPEG_LIBRARY_DIRS})
 target_link_libraries(VideoPush ${FFMPEG_LIBRARIES} ${FASTDEPLOY_LIBS})

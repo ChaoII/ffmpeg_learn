@@ -15,6 +15,16 @@ extern "C" {
 #include <libavutil/ffversion.h>
 }
 
+#ifdef _WIN32
+#ifdef VP
+#define DECL_VP __declspec(dllexport)
+#else
+#define DECL_VP __declspec(dllimport)
+#endif
+#else
+#define DECL_VP __attribute__((visibility("default")))
+#endif
+
 
 void av_frame_to_mat(AVFrame *yuv_frame, AVFrame *bgr24_frame, SwsContext *sws_context);
 
