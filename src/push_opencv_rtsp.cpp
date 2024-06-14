@@ -7,11 +7,12 @@
 
 #include <utility>
 
-push_opencv_rtsp::push_opencv_rtsp(PushStreamParameter parameter) : parameter_(std::move(parameter)) {
-    push_opencv_rtsp::initial_lib();
+PushOpenCVRtsp::PushOpenCVRtsp(std::unique_ptr<PushStreamParameter> parameter) :
+        parameter_(std::move(parameter)) {
+    PushOpenCVRtsp::initial_lib();
 }
 
-int push_opencv_rtsp::push() {
+int PushOpenCVRtsp::push() {
     cv::Mat frame;
     AVFrame *yuv = nullptr;
     long pts = 0, ret = -1;
@@ -73,7 +74,7 @@ int push_opencv_rtsp::push() {
     return ret;
 }
 
-int push_opencv_rtsp::open_codec() {
+int PushOpenCVRtsp::open_codec() {
     // 硬编码器
     const AVCodec *encoder = nullptr;
     int ret = set_encoder(&encoder);
@@ -91,16 +92,16 @@ int push_opencv_rtsp::open_codec() {
     video_codec_context_->flags |= AV_CODEC_FLAG_LOW_DELAY;
     video_codec_context_->codec_id = encoder->id;
     video_codec_context_->codec_type = AVMEDIA_TYPE_VIDEO;
-    video_codec_context_->thread_count = parameter_.thread_nums;
-    video_codec_context_->bit_rate = parameter_.bit_rate;// 压缩后每秒视频的bit位大小为50kb
-    video_codec_context_->width = parameter_.width;
-    video_codec_context_->height = parameter_.height;
-    video_codec_context_->time_base = {1, parameter_.frame_rate};
-    video_codec_context_->gop_size = parameter_.gop_size;
-    video_codec_context_->max_b_frames = parameter_.max_b_frame;
-    video_codec_context_->qmax = parameter_.q_max;
-    video_codec_context_->qmin = parameter_.q_min;
-    video_codec_context_->pix_fmt = AV_PIX_FMT_YUV420P;
+    video_codec_context_->thread_count = parameter_->ffmpeg_thread_nums;
+    video_codec_context_->bit_rate = parameter_->bit_rate;// 压缩后每秒视频的bit位大小为50kb
+    video_codec_context_->width = parameter_->width;
+    video_codec_context_->height = parameter_->height;
+    video_codec_context_->time_base = {1, parameter_->frame_rate};
+    video_codec_context_->gop_size = parameter_->gop_size;
+    video_codec_context_->max_b_frames = parameter_->max_b_frame;
+    video_codec_context_->qmax = parameter_->q_max;
+    video_codec_context_->qmin = parameter_->q_min;
+    video_codec_context_->pix_fmt = pix_format_;
     AVDictionary *options = nullptr;
 
 
@@ -111,7 +112,7 @@ int push_opencv_rtsp::open_codec() {
         return ret;
     }
     // 创建输出包装
-    ret = avformat_alloc_output_context2(&output_format_context_, nullptr, "rtsp", parameter_.out_url.c_str());
+    ret = avformat_alloc_output_context2(&output_format_context_, nullptr, "rtsp", parameter_->out_url.c_str());
     if (ret < 0) {
         VPERROR << "Error occurred when avformat alloc output context : " << get_av_error(ret);
         return ret;
@@ -122,7 +123,7 @@ int push_opencv_rtsp::open_codec() {
     // 从编码器复制参数
     avcodec_parameters_from_context(out_av_stream_->codecpar, video_codec_context_);
     if (!(output_format_context_->oformat->flags & AVFMT_NOFILE)) {
-        if (avio_open(&output_format_context_->pb, parameter_.out_url.c_str(), AVIO_FLAG_WRITE) < 0) {
+        if (avio_open(&output_format_context_->pb, parameter_->out_url.c_str(), AVIO_FLAG_WRITE) < 0) {
             VPERROR << "Could not open output file";
             return -1;
         }
@@ -135,7 +136,7 @@ int push_opencv_rtsp::open_codec() {
     return ret;
 }
 
-cv::Mat push_opencv_rtsp::pop_src_frame() {
+cv::Mat PushOpenCVRtsp::pop_src_frame() {
     std::unique_lock<std::mutex> lock(src_queue_mutex_);
     src_queue_cv_.wait(lock, [this]() { return !src_images_.empty() || stop_signal_; });
     if (src_images_.empty()) {
@@ -147,7 +148,7 @@ cv::Mat push_opencv_rtsp::pop_src_frame() {
     return tmp;
 }
 
-cv::Mat push_opencv_rtsp::pop_dst_frame() {
+cv::Mat PushOpenCVRtsp::pop_dst_frame() {
     std::unique_lock<std::mutex> lock(dst_queue_mutex_);
     dst_queue_cv_.wait(lock, [this]() { return !dst_images_.empty() || stop_signal_; });
     if (dst_images_.empty()) {
@@ -159,7 +160,7 @@ cv::Mat push_opencv_rtsp::pop_dst_frame() {
     return tmp;
 }
 
-void push_opencv_rtsp::push_src_frame(cv::Mat &&frame) {
+void PushOpenCVRtsp::push_src_frame(cv::Mat &&frame) {
     {
         std::unique_lock<std::mutex> lock(src_queue_mutex_);
         if (src_images_.size() < 5) {
@@ -170,7 +171,7 @@ void push_opencv_rtsp::push_src_frame(cv::Mat &&frame) {
     src_queue_cv_.notify_all();
 }
 
-void push_opencv_rtsp::push_dst_frame(cv::Mat &&frame) {
+void PushOpenCVRtsp::push_dst_frame(cv::Mat &&frame) {
     {
         std::unique_lock<std::mutex> lock(dst_queue_mutex_);
         if (dst_images_.size() < 5) {
@@ -181,16 +182,17 @@ void push_opencv_rtsp::push_dst_frame(cv::Mat &&frame) {
     dst_queue_cv_.notify_all();
 }
 
-void push_opencv_rtsp::start() {
+void PushOpenCVRtsp::start() {
+    open_codec();
     stop_signal_ = false;
     stop_analysis_ = false;
-    push_thread_ = std::thread(&push_opencv_rtsp::push, this);
-    analysis_thread_ = std::thread(&push_opencv_rtsp::analysis, this);
+    push_thread_ = std::thread(&PushOpenCVRtsp::push, this);
+    analysis_thread_ = std::thread(&PushOpenCVRtsp::analysis, this);
     initial_models({ModelType::FACE_DETECT});
 }
 
 
-void push_opencv_rtsp::stop() {
+void PushOpenCVRtsp::stop() {
 
     stop_signal_ = true;
     stop_analysis_ = true;
@@ -211,12 +213,12 @@ void push_opencv_rtsp::stop() {
     }
 }
 
-int push_opencv_rtsp::set_encoder(const AVCodec **encoder) const {
-    if (parameter_.hw_accel == "none") {
+int PushOpenCVRtsp::set_encoder(const AVCodec **encoder) const {
+    if (parameter_->hw_accel == "none") {
         // 默认使用h264软编码
         *encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
     } else {
-        *encoder = avcodec_find_encoder_by_name(parameter_.hw_accel.c_str());
+        *encoder = avcodec_find_encoder_by_name(parameter_->hw_accel.c_str());
     }
     if (!*encoder) {
         VPERROR << "can't find encoder, please chose other encoders!";
@@ -226,7 +228,7 @@ int push_opencv_rtsp::set_encoder(const AVCodec **encoder) const {
     return 0;
 }
 
-void push_opencv_rtsp::analysis() {
+void PushOpenCVRtsp::analysis() {
     while (!stop_analysis_) {
         auto image = pop_src_frame();
         if (image.empty()) {
@@ -238,7 +240,7 @@ void push_opencv_rtsp::analysis() {
     VPINFO << "stop analysis";
 }
 
-void push_opencv_rtsp::initial_lib() {
+void PushOpenCVRtsp::initial_lib() {
     if (!library_initialed_) {
         //初始化网络流格相关(使用网络流时必须先执行)
         avformat_network_init();
@@ -251,11 +253,11 @@ void push_opencv_rtsp::initial_lib() {
     }
 }
 
-void push_opencv_rtsp::set_hw_accel(const std::string &hw_accel_name) {
-    parameter_.hw_accel = hw_accel_name;
+void PushOpenCVRtsp::set_hw_accel(const std::string &hw_accel_name) {
+    parameter_->hw_accel = hw_accel_name;
 }
 
-void push_opencv_rtsp::initial_av_options(const AVCodec *encoder, AVDictionary *options) {
+void PushOpenCVRtsp::initial_av_options(const AVCodec *encoder, AVDictionary *options) {
 
     if (video_codec_context_->codec_id == AV_CODEC_ID_H264) {
         av_dict_set(&options, "preset", "superfast", 0);
@@ -282,23 +284,23 @@ void push_opencv_rtsp::initial_av_options(const AVCodec *encoder, AVDictionary *
     av_dict_set(&options, "rtsp_transport", "tcp", 0);
 }
 
-void push_opencv_rtsp::set_resolution(int width, int height) {
-    parameter_.width = width;
-    parameter_.height = height;
+void PushOpenCVRtsp::set_resolution(int width, int height) {
+    parameter_->width = width;
+    parameter_->height = height;
 }
 
-void push_opencv_rtsp::set_frame_rate(int frame_rate) {
-    parameter_.frame_rate = frame_rate;
+void PushOpenCVRtsp::set_frame_rate(int frame_rate) {
+    parameter_->frame_rate = frame_rate;
 }
 
 
-void push_opencv_rtsp::initial_models(const std::vector<ModelType> &model_types) {
+void PushOpenCVRtsp::initial_models(const std::vector<ModelType> &model_types) {
     for (auto &model_type: model_types) {
-        analysis_.emplace_back(new video_analysis(model_type));
+        analysis_.emplace_back(new VideoAnalysis(model_type));
     }
 }
 
-cv::Mat push_opencv_rtsp::predict(cv::Mat &image) {
+cv::Mat PushOpenCVRtsp::predict(cv::Mat &image) {
     for (auto &analysis: analysis_) {
         image = analysis->predict(image);
     }
@@ -306,11 +308,11 @@ cv::Mat push_opencv_rtsp::predict(cv::Mat &image) {
 }
 
 
-void push_opencv_rtsp::stop_analysis() {
+void PushOpenCVRtsp::stop_analysis() {
     stop_analysis_ = true;
 }
 
-push_opencv_rtsp::~push_opencv_rtsp() {
+PushOpenCVRtsp::~PushOpenCVRtsp() {
     stop();
     avcodec_free_context(&video_codec_context_);
     avformat_close_input(&output_format_context_);

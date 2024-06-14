@@ -14,7 +14,7 @@ struct PushStreamParameter {
     std::string out_url = "rtsp://172.168.1.112:8554/live/test";
     // hevc_nvenc h264_nvenc,h264_videotoolbox
     std::string hw_accel = "none";
-    int thread_nums = 1;
+    int ffmpeg_thread_nums = 1;
     // 50 * 1024 * 8
     int bit_rate = 409600;
     int width = 640;
@@ -25,13 +25,15 @@ struct PushStreamParameter {
     int max_b_frame = 0;
     int q_min = 10;
     int q_max = 51;
-    AVPixelFormat pix_format = AV_PIX_FMT_YUV420P;
+    std::vector<ModelType> model_types = {ModelType::FACE_DETECT};
+    int model_thread_num = 1;
+    bool use_gpu = false;
 };
 
 
-class push_opencv_rtsp {
+class PushOpenCVRtsp {
 public:
-    explicit push_opencv_rtsp(PushStreamParameter parameter);
+    explicit PushOpenCVRtsp(std::unique_ptr<PushStreamParameter> parameter);
 
     int open_codec();
 
@@ -61,7 +63,7 @@ public:
 
     cv::Mat predict(cv::Mat &image);
 
-    ~push_opencv_rtsp();
+    ~PushOpenCVRtsp();
 
 private:
 
@@ -75,7 +77,7 @@ private:
 
 private:
 
-    PushStreamParameter parameter_;
+    std::unique_ptr<PushStreamParameter> parameter_;
     bool stop_signal_ = true;
     std::thread analysis_thread_;
     std::thread push_thread_;
@@ -90,7 +92,8 @@ private:
     AVCodecContext *video_codec_context_ = nullptr;
     inline static bool library_initialed_ = false;
     bool stop_analysis_ = false;
-    std::vector<video_analysis *> analysis_;
+    std::vector<VideoAnalysis *> analysis_;
+    const AVPixelFormat pix_format_ = AV_PIX_FMT_YUV420P;
 };
 
 

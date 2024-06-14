@@ -134,7 +134,6 @@ void video_decode_play::decode_and_show(const std::string &name) {
         exit_flag_ = true;
     }
     while (ret >= 0) {
-
         std::cout << "d---------:" << name << std::endl;
         ret = avcodec_receive_frame(video_codec_context_, yuv_frame_);
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
