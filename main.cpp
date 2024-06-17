@@ -50,6 +50,7 @@ int test_push() {
 int main() {
 //    av_log_set_level(AV_LOG_DEBUG); //启用日志
     // 执行ffmpeg -hwaccels 查看硬解码设备
+    avformat_network_init();
     HWDecodePlayer player("rtsp://localhost:8554/live/test", "videotoolbox");
     if (!player.init_parameters()) return -1;
     player.play();
