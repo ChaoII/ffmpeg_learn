@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "src/ai_utils.h"
 #include <thread>
 #include <queue>
+#include "src/ai_utils.h"
 #include "video_analysis.h"
 
 
@@ -34,20 +34,11 @@ struct PushStreamParameter {
 
 
 class DECL_VP PushOpenCVRtsp {
+
+    static void initial_lib();
+
 public:
     explicit PushOpenCVRtsp(std::unique_ptr<PushStreamParameter> parameter);
-
-    int open_codec();
-
-    void push_src_frame(cv::Mat &&frame);
-
-    void push_dst_frame(cv::Mat &&frame);
-
-    void start();
-
-    void stop();
-
-    int set_encoder(const AVCodec **encoder) const;
 
     void set_hw_accel(const std::string &hw_accel_name);
 
@@ -55,23 +46,33 @@ public:
 
     void set_frame_rate(int frame_rate);
 
-    void initial_av_options(const AVCodec *encoder, AVDictionary *options);
+    int open_codec();
 
-    static void initial_lib();
+    void push_src_frame(cv::Mat &&frame);
 
-    void initial_models(const std::vector<ModelType> &model_types);
+    void start();
+
+    void stop();
 
     void stop_analysis();
-
-    cv::Mat predict(cv::Mat &image);
 
     ~PushOpenCVRtsp();
 
 private:
 
-    void analysis();
+    void initial_av_options(const AVCodec *encoder, AVDictionary *options);
+
+    int set_encoder(const AVCodec **encoder) const;
 
     int push();
+
+    void analysis();
+
+    cv::Mat predict(cv::Mat &image);
+
+    void initial_models(const std::vector<ModelType> &model_types);
+
+    void push_dst_frame(cv::Mat &&frame);
 
     cv::Mat pop_dst_frame();
 
