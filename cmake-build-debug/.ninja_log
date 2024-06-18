@@ -1,0 +1,21 @@
+# ninja log v5
+1	3014	1718680410169585782	CMakeFiles/VideoPush.dir/src/video_decode_play.cpp.o	4bd1c5bba28a2281
+0	3029	1718680410189010571	CMakeFiles/VideoPush.dir/src/ai_utils.cpp.o	cd4210cc94a842eb
+1	4323	1718680411478163150	CMakeFiles/VideoPush.dir/capi/video_push_api.cpp.o	aef84f1f96efc1a9
+1	4557	1718680411711873586	CMakeFiles/VideoPush.dir/src/push_opencv_rtsp.cpp.o	236d1be84947353b
+9	5391	1718692819108615712	CMakeFiles/VideoPush.dir/src/log.cpp.o	55b50d002bd4a5fe
+4575	4665	1718680411833242330	libVideoPush.dylib	b94b342f1722e87d
+9	10079	1718692823903662611	CMakeFiles/VideoPush.dir/src/video_analysis.cpp.o	5f5813cf17e74f01
+5	3275	1718680625097232303	CMakeFiles/ffmpeg2cv.dir/main.cpp.o	844194ba80e1bf43
+3275	3354	1718680625183564300	ffmpeg2cv	73e741a1ab59b901
+25	2261	1718692867668763915	CMakeFiles/VideoPush.dir/src/log.cpp.o	42f61c21adf4484f
+27	6677	1718692872101109603	CMakeFiles/VideoPush.dir/src/video_decode_play.cpp.o	40151a4a0f741203
+25	6766	1718692872186730233	CMakeFiles/VideoPush.dir/src/ai_utils.cpp.o	4c0990a2d69a3e29
+27	15387	1718692880796886078	CMakeFiles/VideoPush.dir/capi/video_push_api.cpp.o	1f9229ae08873221
+25	15889	1718692881313562916	CMakeFiles/VideoPush.dir/src/push_opencv_rtsp.cpp.o	eed79d53c8ecbbb7
+27	15982	1718692881403418950	CMakeFiles/VideoPush.dir/src/video_analysis.cpp.o	db8191e7babe99b7
+2264	16326	1718692881752731441	CMakeFiles/ffmpeg2cv.dir/main.cpp.o	4b1563e935097a64
+15983	16345	1718692881783017632	libVideoPush.dylib	4828e836b2da3578
+16345	16436	1718692881886289348	ffmpeg2cv	bc92c1c59b203977
+15	4649	1718694262148866290	CMakeFiles/ffmpeg2cv.dir/main.cpp.o	4b1563e935097a64
+4650	7216	1718694264726879461	ffmpeg2cv	bc92c1c59b203977

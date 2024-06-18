@@ -1,0 +1,5 @@
+/Users/aichao/Documents/Github/ffmpeg_learn/cmake-build-debug/CMakeFiles/fd_compile_deps.dir
+/Users/aichao/Documents/Github/ffmpeg_learn/cmake-build-debug/CMakeFiles/VideoPush.dir
+/Users/aichao/Documents/Github/ffmpeg_learn/cmake-build-debug/CMakeFiles/ffmpeg2cv.dir
+/Users/aichao/Documents/Github/ffmpeg_learn/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/aichao/Documents/Github/ffmpeg_learn/cmake-build-debug/CMakeFiles/rebuild_cache.dir
