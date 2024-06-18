@@ -44,7 +44,7 @@ AVFrame *mat_to_av_frame(cv::Mat &image, AVPixelFormat pix_format) {
     //创建AVFrame填充参数 注：调用者释放该frame
     AVFrame *frame = av_frame_alloc();
     if (!frame) {
-        std::cerr << "Failed to allocate AVFrame" << std::endl;
+        VPERROR << "Failed to allocate AVFrame";
         return nullptr;
     }
     frame->width = width;
@@ -53,13 +53,13 @@ AVFrame *mat_to_av_frame(cv::Mat &image, AVPixelFormat pix_format) {
     //初始化AVFrame内部空间
     int ret = av_frame_get_buffer(frame, 32);
     if (ret < 0) {
-        std::cout << "Could not allocate the video frame data" << std::endl;
+        VPERROR << "Could not allocate the video frame data";
         av_frame_free(&frame);
         return nullptr;
     }
     ret = av_frame_make_writable(frame);
     if (ret < 0) {
-        std::cout << "Av frame make writable failed." << std::endl;
+        VPERROR << "Av frame make writable failed.";
         av_frame_free(&frame);
         return nullptr;
     }
@@ -80,7 +80,7 @@ AVFrame *mat_to_av_frame(cv::Mat &image, AVPixelFormat pix_format) {
 int get_video_stream_index(AVFormatContext *format_context) {
     auto ret = avformat_find_stream_info(format_context, nullptr);
     if (ret != 0) {
-        std::cout << "Failed to get stream info" << std::endl;
+        VPERROR << "Failed to get stream info";
         exit(ret);
     }
     int video_stream_index = -1;
@@ -109,5 +109,11 @@ bool end_with(const std::string &str, std::string &sub) {
 
 bool is_contain(const std::string &str, const std::string &substr) {
     return str.find(substr) != std::string::npos;
+}
+
+std::string get_av_error(int err_num) {
+    char err_buf[1024] = {0};
+    av_make_error_string(err_buf, 1024, err_num);
+    return err_buf;
 }
 

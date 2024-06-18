@@ -2,40 +2,53 @@ cmake_minimum_required(VERSION 3.20)
 project(ffmpeg2cv)
 
 
+option(EXPORT_CAPI "build c api" ON)
+set(FAST_DEPLOY_PATH "E:/Fastdeploy/build/install" CACHE PATH "fastdeploy path")
+# macos /usr/local/Cellar/ffmpeg/6.1.1_2
+set(FFMPEG_PATH "E:/develop/ffmpeg" CACHE PATH "ffmpeg path")
+
+
+set(FFMPEG_INCLUDE_DIRS "${FFMPEG_PATH}/include")
+set(FFMPEG_LIBRARY_DIRS "${FFMPEG_PATH}/lib")
+if (WIN32)
+    if (MSVC)
+        add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
+        add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+    endif ()
+endif ()
+
+include(${FAST_DEPLOY_PATH}/FastDeploy.cmake)
 set(CMAKE_CXX_STANDARD 17)
-
-find_package(OpenCV REQUIRED)
-
+# 添加FastDeploy依赖头文件
+include_directories(${FASTDEPLOY_INCS})
 include_directories(${CMAKE_SOURCE_DIR})
-
-if(WIN32)
-    set(FFMPEG_INCLUDE_DIRS "E:/develop/ffmpeg/include")
-    set(FFMPEG_LIBRARY_DIRS "E:/develop/ffmpeg/lib")
-else ()
-    set(FFMPEG_INCLUDE_DIRS "/usr/local/Cellar/ffmpeg/6.1.1_2/include")
-    set(FFMPEG_LIBRARY_DIRS "/usr/local/Cellar/ffmpeg/6.1.1_2/lib")
-    # 其他系统
-endif()
-
-
-set(FFMPEG_LIBRARIES avdevice
+set(FFMPEG_LIBRARIES
+        avdevice
         avfilter
         avformat
         avcodec
         swresample
         swscale
-        avutil)
+        avutil
+)
 
-if (MSVC)
-    add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
-    add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+set(SOURCES "")
+set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
+
+file(GLOB CPPSOURCES ${SOURCE_DIR}/*.h ${SOURCE_DIR}/*.cpp)
+list(APPEND SOURCES ${CPPSOURCES})
+if (EXPORT_CAPI)
+    add_definitions(-DCAPI)
+    file(GLOB CSOURCES capi/*.h capi/*.cpp)
+    list(APPEND SOURCES ${CSOURCES})
 endif ()
 
-aux_source_directory(src SRC)
+add_definitions(-DVP)
+add_library(VideoPush SHARED ${SOURCES})
+target_include_directories(VideoPush PUBLIC ${FFMPEG_INCLUDE_DIRS})
+target_link_directories(VideoPush PUBLIC ${FFMPEG_LIBRARY_DIRS})
+target_link_libraries(VideoPush ${FFMPEG_LIBRARIES} ${FASTDEPLOY_LIBS})
 
-message("${SRC}")
 
-add_executable(${PROJECT_NAME} ${SRC} main.cpp)
-target_include_directories(${PROJECT_NAME} PRIVATE ${FFMPEG_INCLUDE_DIRS})
-target_link_directories(${PROJECT_NAME} PRIVATE ${FFMPEG_LIBRARY_DIRS})
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${FFMPEG_LIBRARIES})
+add_executable(${PROJECT_NAME} main.cpp)
+target_link_libraries(${PROJECT_NAME} VideoPush)
