@@ -21,8 +21,7 @@ int test_push() {
         std::cout << "无法打开摄像头！" << std::endl;
         return -1;
     }
-    PushStreamParameter parameter;
-    auto pushUtils = new PushOpenCVRtsp(std::unique_ptr<PushStreamParameter>(&parameter));
+    auto pushUtils = new PushOpenCVRtsp(std::make_unique<PushStreamParameter>());
     pushUtils->set_hw_accel("h264_videotoolbox");
     pushUtils->set_resolution(640, 480);
     pushUtils->set_frame_rate(10);
@@ -97,8 +96,6 @@ void test_play() {
 
 
 int main() {
-
-    VPERROR << "1231";
 
     // test_play()
      test_push();

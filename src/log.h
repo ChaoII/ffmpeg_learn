@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <sstream>
+#include "ai_utils.h"
 
 #ifdef _WIN32
 
@@ -12,7 +13,9 @@
 
 #define isatty _isatty
 #else
+
 #include <unistd.h>
+
 #endif
 
 
@@ -36,7 +39,7 @@ public:
         verbose_ = true;
     }
 
-    explicit VPLogger(bool verbose, const std::string &color, const std::string &prefix = "[FastDeploy]");
+    explicit VPLogger(bool verbose, const std::string &color, const std::string &prefix = "[VP]");
 
     template<typename T>
     VPLogger &operator<<(const T &val) {
@@ -49,13 +52,16 @@ public:
         return *this;
     }
 
+    std::string get_current_time_formatted(const std::string &format = "%Y-%m-%d %H:%M:%S");
+
     VPLogger &operator<<(std::ostream &(*os)(std::ostream &));
 
     ~VPLogger() {
         if (verbose_ && !line_.empty()) {
-            std::cout << color_ << prefix_ << " " << line_ << color_end_ << std::endl;
+            std::cout << color_ << get_current_time_formatted() <<" | "<< prefix_ << " | " << line_ << color_end_ << std::endl;
         }
     }
+
 
 private:
     std::string line_;
@@ -78,6 +84,6 @@ private:
   VPLogger(VPLogger::enable_warning, YELLOW, "[WARNING]")                  \
       << __REL_FILE__ << "(" << __LINE__ << ")::" << __FUNCTION__ << "\t"
 
-#define VPINFO  VPLogger(VPLogger::enable_info, GREEN ,"[INFO]")<< "\t"
+#define VPINFO  VPLogger(VPLogger::enable_info, GREEN ,"[INFO]")
 
 

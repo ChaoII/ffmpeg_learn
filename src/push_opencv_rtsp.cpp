@@ -253,7 +253,7 @@ void PushOpenCVRtsp::initial_lib() {
         //设置日志级别
         //如果不想看到烦人的打印信息可以设置成 AV_LOG_QUIET 表示不打印日志
         //有时候发现使用不正常比如打开了没法播放视频则需要打开日志看下报错提示
-//        av_log_set_level(AV_LOG_QUIET);
+        av_log_set_level(AV_LOG_QUIET);
         VPINFO << "initial ffmpeg success, ffmpeg version: " << FFMPEG_VERSION;
         library_initialed_ = true;
     }
