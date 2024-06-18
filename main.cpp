@@ -1,6 +1,7 @@
 #include <iostream>
 #include "src/video_decode_play.h"
 #include "src/push_opencv_rtsp.h"
+#include <memory>
 #include <opencv2/core/utils/logger.hpp>
 #include "capi/video_push_api.h"
 
@@ -21,9 +22,9 @@ int test_push() {
         std::cout << "无法打开摄像头！" << std::endl;
         return -1;
     }
-    PushStreamParameter parameter;
-    auto pushUtils = new PushOpenCVRtsp(std::unique_ptr<PushStreamParameter>(&parameter));
-    pushUtils->set_hw_accel("h264_videotoolbox");
+//    PushStreamParameter parameter;
+    auto pushUtils = new PushOpenCVRtsp(std::make_unique<PushStreamParameter>());
+    pushUtils->set_hw_accel("h264_nvenc");
     pushUtils->set_resolution(640, 480);
     pushUtils->set_frame_rate(10);
     pushUtils->start();
@@ -97,8 +98,6 @@ void test_play() {
 
 
 int main() {
-
-    VPERROR << "1231";
 
     // test_play()
      test_push();
