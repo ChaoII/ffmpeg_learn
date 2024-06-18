@@ -5,8 +5,6 @@
 
 #include "push_opencv_rtsp.h"
 
-#include <utility>
-
 PushOpenCVRtsp::PushOpenCVRtsp(std::unique_ptr<PushStreamParameter> parameter) :
         parameter_(std::move(parameter)) {
     if (start_with(parameter_->out_url, "rtsp")) {
