@@ -1,6 +1,7 @@
 //
 // Created by AC on 2024/6/13.
 //
+#include <memory>
 #include "video_push_api.h"
 #include "src/push_opencv_rtsp.h"
 

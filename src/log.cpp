@@ -16,7 +16,7 @@ VPLogger::VPLogger(bool verbose, const std::string &color, const std::string &pr
     verbose_ = verbose;
     line_ = "";
     prefix_ = prefix;
-    if (_isatty(_fileno(stdout))) {
+    if (isatty(fileno(stdout))) {
         color_ = color;
     } else {
         color_ = "";
