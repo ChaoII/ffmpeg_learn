@@ -80,7 +80,7 @@ bool VideoDecodePlay::init_parameters() {
 
 
     if (!(video_codec_context_ = avcodec_alloc_context3(video_codec_))) {
-        return AVERROR(ENOMEM);
+        VPERROR << "alloc avcodec context failed";
     }
 
     auto video_stream = input_format_context_->streams[video_stream_index_];
