@@ -1,6 +1,8 @@
 # ffmpeg_learn
 
-学习ffmpeg
+```c++
+ffmpeg 
+```
 
 ```c++
     AVDictionary *options = nullptr;

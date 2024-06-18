@@ -102,7 +102,7 @@ void test_play() {
 int main() {
 
     // test_play()
-    // test_push();
-    test_push_c();
+     test_push();
+//    test_push_c();
     return 0;
 }

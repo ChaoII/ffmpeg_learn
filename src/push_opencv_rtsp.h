@@ -11,7 +11,8 @@
 
 
 struct PushStreamParameter {
-    std::string out_url = "rtsp://172.168.1.112:8554/live/test";
+    //ffmpeg
+    std::string out_url = "rtsp://172.168.1.122/live/test";
     // hevc_nvenc h264_nvenc,h264_videotoolbox
     std::string hw_accel = "none";
     int ffmpeg_thread_nums = 1;
@@ -25,6 +26,7 @@ struct PushStreamParameter {
     int max_b_frame = 0;
     int q_min = 10;
     int q_max = 51;
+    // model
     std::vector<ModelType> model_types = {ModelType::FACE_DETECT};
     int model_thread_num = 1;
     bool use_gpu = false;
@@ -78,6 +80,7 @@ private:
 private:
 
     std::unique_ptr<PushStreamParameter> parameter_;
+    std::string push_protocol_format_ = "rtsp";
     bool stop_signal_ = true;
     std::thread analysis_thread_;
     std::thread push_thread_;

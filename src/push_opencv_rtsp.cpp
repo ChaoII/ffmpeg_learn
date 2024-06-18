@@ -9,6 +9,13 @@
 
 PushOpenCVRtsp::PushOpenCVRtsp(std::unique_ptr<PushStreamParameter> parameter) :
         parameter_(std::move(parameter)) {
+    if (start_with(parameter_->out_url, "rtsp")) {
+        push_protocol_format_ = "rtsp";
+    } else if (start_with(parameter_->out_url, "rtmp")) {
+        push_protocol_format_ = "flv";
+    } else {
+        VPERROR << "push url only support rtmp and rtsp";
+    }
     PushOpenCVRtsp::initial_lib();
 }
 
@@ -112,7 +119,8 @@ int PushOpenCVRtsp::open_codec() {
         return ret;
     }
     // 创建输出包装
-    ret = avformat_alloc_output_context2(&output_format_context_, nullptr, "rtsp", parameter_->out_url.c_str());
+    ret = avformat_alloc_output_context2(&output_format_context_, nullptr,
+                                         push_protocol_format_.c_str(), parameter_->out_url.c_str());
     if (ret < 0) {
         VPERROR << "Error occurred when avformat alloc output context : " << get_av_error(ret);
         return ret;
@@ -247,7 +255,7 @@ void PushOpenCVRtsp::initial_lib() {
         //设置日志级别
         //如果不想看到烦人的打印信息可以设置成 AV_LOG_QUIET 表示不打印日志
         //有时候发现使用不正常比如打开了没法播放视频则需要打开日志看下报错提示
-        av_log_set_level(AV_LOG_QUIET);
+//        av_log_set_level(AV_LOG_QUIET);
         VPINFO << "initial ffmpeg success, ffmpeg version: " << FFMPEG_VERSION;
         library_initialed_ = true;
     }
@@ -321,6 +329,7 @@ PushOpenCVRtsp::~PushOpenCVRtsp() {
     }
     analysis_.clear();
 }
+
 
 
 
