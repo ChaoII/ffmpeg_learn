@@ -93,7 +93,7 @@ int PushOpenCVRtsp::open_codec() {
     // 配置编码器参数
     video_codec_context_->flags |= AV_CODEC_FLAG_GLOBAL_HEADER; // 全局参数
 //    video_codec_context_->flags |= AV_CODEC_FLAG2_LOCAL_HEADER;
-    video_codec_context_->flags |= AV_CODEC_FLAG_QSCALE;
+//    video_codec_context_->flags |= AV_CODEC_FLAG_QSCALE;
     video_codec_context_->flags |= AV_CODEC_FLAG_LOW_DELAY;
     video_codec_context_->codec_id = encoder->id;
     video_codec_context_->codec_type = AVMEDIA_TYPE_VIDEO;
@@ -275,6 +275,7 @@ void PushOpenCVRtsp::initial_av_options(const AVCodec *encoder, AVDictionary *op
     }
     if (is_contain(encoder->long_name, "VideoToolbox")) {
         av_dict_set(&options, "profile", "baseline", 0);
+        av_dict_set(&options, "color_range", "pc", 0);
     }
     av_dict_set(&options, "rc", "cbr", 0);
     av_dict_set(&options, "strict_gop", "1", 0);

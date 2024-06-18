@@ -1,18 +1,13 @@
 #include <iostream>
-#include <thread>
 #include "src/video_decode_play.h"
 #include "src/push_opencv_rtsp.h"
 #include <opencv2/core/utils/logger.hpp>
 #include "capi/video_push_api.h"
 
 extern "C" {
-#include "libavcodec/avcodec.h"
 #include "libavfilter/avfilter.h"
-#include "libavformat/avformat.h"
 #include "libavutil/avutil.h"
-#include "libavutil/ffversion.h"
 #include "libswresample/swresample.h"
-#include "libswscale/swscale.h"
 #include "libpostproc/postprocess.h"
 }
 
@@ -20,13 +15,15 @@ int test_push() {
 
     cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_SILENT);
     cv::VideoCapture cap(0);
+    cap.set(cv::CAP_PROP_FRAME_WIDTH,640);
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT,480);
     if (!cap.isOpened()) {
         std::cout << "无法打开摄像头！" << std::endl;
         return -1;
     }
     PushStreamParameter parameter;
     auto pushUtils = new PushOpenCVRtsp(std::unique_ptr<PushStreamParameter>(&parameter));
-    pushUtils->set_hw_accel("h264_nvenc");
+    pushUtils->set_hw_accel("h264_videotoolbox");
     pushUtils->set_resolution(640, 480);
     pushUtils->set_frame_rate(10);
     pushUtils->start();
@@ -100,8 +97,12 @@ void test_play() {
 
 
 int main() {
+
+    VPERROR << "1231";
+
     // test_play()
      test_push();
 //    test_push_c();
     return 0;
 }
+ 
