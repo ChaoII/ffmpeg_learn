@@ -17,66 +17,32 @@ PushOpenCVRtsp::PushOpenCVRtsp(std::unique_ptr<PushStreamParameter> parameter) :
     PushOpenCVRtsp::initial_lib();
 }
 
-int PushOpenCVRtsp::push() {
-    cv::Mat frame;
-    AVFrame *yuv = nullptr;
-    long pts = 0, ret = -1;
-    AVPacket *pack = av_packet_alloc();
-    if (!pack) {
-        std::cerr << "Failed to allocate AVPacket" << std::endl;
-        return AVERROR(ENOMEM);
+void PushOpenCVRtsp::initial_lib() {
+    if (!library_initialed_) {
+        //初始化网络流格相关(使用网络流时必须先执行)
+        avformat_network_init();
+        //设置日志级别
+        //如果不想看到烦人的打印信息可以设置成 AV_LOG_QUIET 表示不打印日志
+        //有时候发现使用不正常比如打开了没法播放视频则需要打开日志看下报错提示
+        av_log_set_level(AV_LOG_QUIET);
+        VPINFO << "initial ffmpeg success, ffmpeg version: " << FFMPEG_VERSION;
+        library_initialed_ = true;
     }
+}
 
-    while (!stop_signal_) {
-        frame = pop_dst_frame();
-        if (frame.empty()) {
-            continue;
-        }
-        yuv = mat_to_av_frame(frame);
-        if (!yuv) {
-            VPERROR << "Failed to convert Mat to AVFrame";
-            continue;
-        }
-        yuv->pts = pts++;
-        ret = avcodec_send_frame(video_codec_context_, yuv);
-        if (ret != 0) {
-            VPERROR << "Error sending frame to encoder: " << get_av_error(ret);
-            av_frame_free(&yuv);
-            continue;
-        }
-        ret = avcodec_receive_packet(video_codec_context_, pack);
-        if (ret != 0 || pack->size <= 0) {
-            av_frame_free(&yuv);
-            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-                continue;
-            } else {
-                VPERROR << "Error receiving packet from encoder: " << get_av_error(ret);
-                continue;
-            }
-        }
-
-//        if (pack->dts < 0 || pack->pts < 0 || pack->dts > pack->pts) {
-//            pack->dts = pack->pts = pack->duration = 0;
-//        }
-//        pack->pts = av_rescale_q(pack->pts, video_codec_context_->time_base, out_av_stream_->time_base); // 显示时间
-//        pack->dts = av_rescale_q(pack->dts, video_codec_context_->time_base, out_av_stream_->time_base); // 解码时间
-//        pack->duration = av_rescale_q(pack->duration, video_codec_context_->time_base,
-//                                      out_av_stream_->time_base); // 数据时长
-
-        av_packet_rescale_ts(pack, video_codec_context_->time_base, out_av_stream_->time_base);
-        ret = av_interleaved_write_frame(output_format_context_, pack);
-        if (ret < 0) {
-            VPERROR << "Error sending packet to output: " << get_av_error(ret);
-            av_frame_free(&yuv);
-            av_packet_unref(pack);
-            continue;
-        }
-        av_frame_free(&yuv);
-        av_packet_unref(pack);
+int PushOpenCVRtsp::set_encoder(const AVCodec **encoder) const {
+    if (parameter_->hw_accel == "none") {
+        // 默认使用h264软编码
+        *encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
+    } else {
+        *encoder = avcodec_find_encoder_by_name(parameter_->hw_accel.c_str());
     }
-    VPINFO << "stop push";
-    av_packet_free(&pack);
-    return ret;
+    if (!*encoder) {
+        VPERROR << "can't find encoder, please chose other encoders!";
+        return -1;
+    }
+    VPINFO << "find encoder: " << (*encoder)->long_name;
+    return 0;
 }
 
 int PushOpenCVRtsp::open_codec() {
@@ -142,6 +108,69 @@ int PushOpenCVRtsp::open_codec() {
     return ret;
 }
 
+int PushOpenCVRtsp::push() {
+    cv::Mat frame;
+    AVFrame *yuv = nullptr;
+    long pts = 0, ret = -1;
+    AVPacket *pack = av_packet_alloc();
+    if (!pack) {
+        std::cerr << "Failed to allocate AVPacket" << std::endl;
+        return AVERROR(ENOMEM);
+    }
+
+    while (!stop_signal_) {
+        frame = pop_dst_frame();
+        if (frame.empty()) {
+            continue;
+        }
+        yuv = mat_to_av_frame(frame);
+        if (!yuv) {
+            VPERROR << "Failed to convert Mat to AVFrame";
+            continue;
+        }
+        yuv->pts = pts++;
+        ret = avcodec_send_frame(video_codec_context_, yuv);
+        if (ret != 0) {
+            VPERROR << "Error sending frame to encoder: " << get_av_error(ret);
+            av_frame_free(&yuv);
+            continue;
+        }
+        ret = avcodec_receive_packet(video_codec_context_, pack);
+        if (ret != 0 || pack->size <= 0) {
+            av_frame_free(&yuv);
+            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                continue;
+            } else {
+                VPERROR << "Error receiving packet from encoder: " << get_av_error(ret);
+                continue;
+            }
+        }
+
+//        if (pack->dts < 0 || pack->pts < 0 || pack->dts > pack->pts) {
+//            pack->dts = pack->pts = pack->duration = 0;
+//        }
+//        pack->pts = av_rescale_q(pack->pts, video_codec_context_->time_base, out_av_stream_->time_base); // 显示时间
+//        pack->dts = av_rescale_q(pack->dts, video_codec_context_->time_base, out_av_stream_->time_base); // 解码时间
+//        pack->duration = av_rescale_q(pack->duration, video_codec_context_->time_base,
+//                                      out_av_stream_->time_base); // 数据时长
+
+        av_packet_rescale_ts(pack, video_codec_context_->time_base, out_av_stream_->time_base);
+        ret = av_interleaved_write_frame(output_format_context_, pack);
+        if (ret < 0) {
+            VPERROR << "Error sending packet to output: " << get_av_error(ret);
+            av_frame_free(&yuv);
+            av_packet_unref(pack);
+            continue;
+        }
+        av_frame_free(&yuv);
+        av_packet_unref(pack);
+    }
+    VPINFO << "stop push";
+    av_packet_free(&pack);
+    return ret;
+}
+
+
 cv::Mat PushOpenCVRtsp::pop_src_frame() {
     std::unique_lock<std::mutex> lock(src_queue_mutex_);
     src_queue_cv_.wait(lock, [this]() { return !src_images_.empty() || stop_signal_; });
@@ -192,9 +221,9 @@ void PushOpenCVRtsp::start() {
     open_codec();
     stop_signal_ = false;
     stop_analysis_ = false;
+    initial_models({ModelType::FACE_DETECT});
     push_thread_ = std::thread(&PushOpenCVRtsp::push, this);
     analysis_thread_ = std::thread(&PushOpenCVRtsp::analysis, this);
-    initial_models({ModelType::FACE_DETECT});
 }
 
 
@@ -219,21 +248,6 @@ void PushOpenCVRtsp::stop() {
     }
 }
 
-int PushOpenCVRtsp::set_encoder(const AVCodec **encoder) const {
-    if (parameter_->hw_accel == "none") {
-        // 默认使用h264软编码
-        *encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
-    } else {
-        *encoder = avcodec_find_encoder_by_name(parameter_->hw_accel.c_str());
-    }
-    if (!*encoder) {
-        VPERROR << "can't find encoder, please chose other encoders!";
-        return -1;
-    }
-    VPINFO << "find encoder: " << (*encoder)->long_name;
-    return 0;
-}
-
 void PushOpenCVRtsp::analysis() {
     while (!stop_analysis_) {
         auto image = pop_src_frame();
@@ -246,18 +260,6 @@ void PushOpenCVRtsp::analysis() {
     VPINFO << "stop analysis";
 }
 
-void PushOpenCVRtsp::initial_lib() {
-    if (!library_initialed_) {
-        //初始化网络流格相关(使用网络流时必须先执行)
-        avformat_network_init();
-        //设置日志级别
-        //如果不想看到烦人的打印信息可以设置成 AV_LOG_QUIET 表示不打印日志
-        //有时候发现使用不正常比如打开了没法播放视频则需要打开日志看下报错提示
-//        av_log_set_level(AV_LOG_QUIET);
-        VPINFO << "initial ffmpeg success, ffmpeg version: " << FFMPEG_VERSION;
-        library_initialed_ = true;
-    }
-}
 
 void PushOpenCVRtsp::set_hw_accel(const std::string &hw_accel_name) {
     parameter_->hw_accel = hw_accel_name;
@@ -299,7 +301,6 @@ void PushOpenCVRtsp::set_resolution(int width, int height) {
 void PushOpenCVRtsp::set_frame_rate(int frame_rate) {
     parameter_->frame_rate = frame_rate;
 }
-
 
 void PushOpenCVRtsp::initial_models(const std::vector<ModelType> &model_types) {
     for (auto &model_type: model_types) {
