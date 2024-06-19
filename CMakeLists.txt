@@ -3,6 +3,7 @@ project(ffmpeg2cv)
 
 
 option(EXPORT_CAPI "build c api" ON)
+option(BUILD_TESTS "build test" ON)
 set(FAST_DEPLOY_PATH "E:/Fastdeploy/build/install" CACHE PATH "fastdeploy path")
 # macos /usr/local/Cellar/ffmpeg/6.1.1_2
 set(FFMPEG_PATH "E:/develop/ffmpeg" CACHE PATH "ffmpeg path")
@@ -30,9 +31,8 @@ set(FFMPEG_LIBRARIES
         swresample
         swscale
         avutil
-)
+        )
 
-set(SOURCES "")
 set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
 
 file(GLOB CPPSOURCES ${SOURCE_DIR}/*.h ${SOURCE_DIR}/*.cpp)
@@ -52,3 +52,9 @@ target_link_libraries(VideoPush ${FFMPEG_LIBRARIES} ${FASTDEPLOY_LIBS})
 
 add_executable(${PROJECT_NAME} main.cpp)
 target_link_libraries(${PROJECT_NAME} VideoPush)
+
+if (BUILD_TESTS)
+#    add_subdirectory(third_party/googletest)
+    add_subdirectory(test)
+#    # 添加Google Test
+endif ()

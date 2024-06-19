@@ -32,6 +32,7 @@ typedef enum CModelType {
     C_FACE_DETECT,
     C_PERSON_DETECT
 } CModelType;
+
 typedef struct CPushStreamParameter {
     char *out_url;
     char *hw_accel;
