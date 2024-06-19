@@ -1,7 +1,7 @@
 # ffmpeg_learn
 
 ```c++
-ffmpeg 
+ffmpeg -re -stream_loop -1 -i 1.mp4 -vcodec libx264 -acodec acc -f flv rtmp://127.0.0.1/live/test
 ```
 
 ```c++

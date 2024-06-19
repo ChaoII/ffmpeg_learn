@@ -24,7 +24,7 @@ void PushOpenCVRtsp::initial_lib() {
         //设置日志级别
         //如果不想看到烦人的打印信息可以设置成 AV_LOG_QUIET 表示不打印日志
         //有时候发现使用不正常比如打开了没法播放视频则需要打开日志看下报错提示
-        av_log_set_level(AV_LOG_QUIET);
+        av_log_set_level(AV_LOG_INFO);
         VPINFO << "initial ffmpeg success, ffmpeg version: " << FFMPEG_VERSION;
         library_initialed_ = true;
     }
@@ -43,6 +43,37 @@ int PushOpenCVRtsp::set_encoder(const AVCodec **encoder) const {
     }
     VPINFO << "find encoder: " << (*encoder)->long_name;
     return 0;
+}
+
+void PushOpenCVRtsp::initial_av_options(const AVCodec *encoder, AVDictionary *options) {
+
+    if (video_codec_context_->codec_id == AV_CODEC_ID_H264) {
+        av_dict_set(&options, "preset", "superfast", 0);
+        av_dict_set(&options, "tune", "zerolatency", 0);
+    }
+    if (video_codec_context_->codec_id == AV_CODEC_ID_H265) {
+        av_dict_set(&options, "preset", "ultrafast", 0);
+        av_dict_set(&options, "tune", "zero-latency", 0);
+    }
+    if (is_contain(encoder->long_name, "VideoToolbox")) {
+        av_dict_set(&options, "profile", "baseline", 0);
+        av_dict_set(&options, "color_range", "pc", 0);
+    }
+    //设置推流质量越大质量越高
+    av_dict_set(&options, "crf", "32", 0);
+    // cbr (Constant Bit Rate): 恒定比特率，适用于需要稳定网络带宽的场景。
+    // vbr (Variable Bit Rate): 可变比特率，允许比特率根据内容复杂度变化，通常能提供更好的质量。
+    av_dict_set(&options, "rc", "cbr", 0);
+    av_dict_set(&options, "strict_gop", "1", 0);
+    av_dict_set(&options, "profile", "high", 0);
+    av_dict_set(&options, "sc_threshold", "600", 0);
+    av_dict_set(&options, "buffer_size", "40960000", 0);
+    //设置超时断开连接时间(单位微秒/3000000表示3秒)
+    av_dict_set(&options, "stimeout", "3000000", 0);
+    //设置最大时延(单位微秒/1000000表示1秒)
+    av_dict_set(&options, "max_delay", "1000000", 0);
+    //通信协议采用tcp还是udp(udp优点是无连接/在网线拔掉以后十几秒钟重新插上还能继续接收/缺点是网络不好的情况下会丢包花屏)
+    av_dict_set(&options, "rtsp_transport", "tcp", 0);
 }
 
 int PushOpenCVRtsp::open_codec() {
@@ -74,8 +105,6 @@ int PushOpenCVRtsp::open_codec() {
     video_codec_context_->qmin = parameter_->q_min;
     video_codec_context_->pix_fmt = pix_format_;
     AVDictionary *options = nullptr;
-
-
     initial_av_options(encoder, options);
     // 打开编码器上下文
     if ((ret = avcodec_open2(video_codec_context_, encoder, &options)) < 0) {
@@ -128,6 +157,7 @@ int PushOpenCVRtsp::push() {
             VPERROR << "Failed to convert Mat to AVFrame";
             continue;
         }
+
         yuv->pts = pts++;
         ret = avcodec_send_frame(video_codec_context_, yuv);
         if (ret != 0) {
@@ -145,6 +175,7 @@ int PushOpenCVRtsp::push() {
                 continue;
             }
         }
+
 
 //        if (pack->dts < 0 || pack->pts < 0 || pack->dts > pack->pts) {
 //            pack->dts = pack->pts = pack->duration = 0;
@@ -164,6 +195,7 @@ int PushOpenCVRtsp::push() {
         }
         av_frame_free(&yuv);
         av_packet_unref(pack);
+        pts++;
     }
     VPINFO << "stop push";
     av_packet_free(&pack);
@@ -265,33 +297,6 @@ void PushOpenCVRtsp::set_hw_accel(const std::string &hw_accel_name) {
     parameter_->hw_accel = hw_accel_name;
 }
 
-void PushOpenCVRtsp::initial_av_options(const AVCodec *encoder, AVDictionary *options) {
-
-    if (video_codec_context_->codec_id == AV_CODEC_ID_H264) {
-        av_dict_set(&options, "preset", "superfast", 0);
-        av_dict_set(&options, "tune", "zerolatency", 0);
-    }
-    if (video_codec_context_->codec_id == AV_CODEC_ID_H265) {
-        av_dict_set(&options, "preset", "ultrafast", 0);
-        av_dict_set(&options, "tune", "zero-latency", 0);
-    }
-    if (is_contain(encoder->long_name, "VideoToolbox")) {
-        av_dict_set(&options, "profile", "baseline", 0);
-        av_dict_set(&options, "color_range", "pc", 0);
-    }
-    av_dict_set(&options, "rc", "cbr", 0);
-    av_dict_set(&options, "strict_gop", "1", 0);
-
-    av_dict_set(&options, "profile", "high", 0);
-    av_dict_set(&options, "sc_threshold", "600", 0);
-    av_dict_set(&options, "buffer_size", "40960000", 0);
-    //设置超时断开连接时间(单位微秒/3000000表示3秒)
-    av_dict_set(&options, "stimeout", "3000000", 0);
-    //设置最大时延(单位微秒/1000000表示1秒)
-    av_dict_set(&options, "max_delay", "1000000", 0);
-    //通信协议采用tcp还是udp(udp优点是无连接/在网线拔掉以后十几秒钟重新插上还能继续接收/缺点是网络不好的情况下会丢包花屏)
-    av_dict_set(&options, "rtsp_transport", "tcp", 0);
-}
 
 void PushOpenCVRtsp::set_resolution(int width, int height) {
     parameter_->width = width;

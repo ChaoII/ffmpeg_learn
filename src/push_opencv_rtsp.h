@@ -12,7 +12,7 @@
 
 struct PushStreamParameter {
     //ffmpeg
-    std::string out_url = "rtmp://172.168.1.122/live/test";
+    std::string out_url = "rtsp://127.0.0.1:8554/live/test";
     // hevc_nvenc h264_nvenc,h264_videotoolbox
     std::string hw_accel = "none";
     int ffmpeg_thread_nums = 1;
@@ -21,11 +21,11 @@ struct PushStreamParameter {
     int width = 640;
     int height = 480;
     int frame_rate = 25;
-    int gop_size = 30;
+    int gop_size = 12;
     // 想要支持webrtc不能使用b帧
     int max_b_frame = 0;
     int q_min = 10;
-    int q_max = 51;
+    int q_max = 45;
     // model
     std::vector<ModelType> model_types = {ModelType::FACE_DETECT};
     int model_thread_num = 1;
