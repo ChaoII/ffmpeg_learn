@@ -12,7 +12,7 @@
 
 struct PushStreamParameter {
     //ffmpeg
-    std::string out_url = "rtsp://127.0.0.1:8554/live/test";
+    std::string out_url = "rtsp://127.0.0.1/live/test";
     // hevc_nvenc h264_nvenc,h264_videotoolbox
     std::string hw_accel = "none";
     int ffmpeg_thread_nums = 1;
